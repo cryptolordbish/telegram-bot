@@ -1,25 +1,25 @@
 require("dotenv").config();
 
 // =====================================
-// AI CODE
+// AI + LIBRARIES
 // =====================================
 
 const OpenAI = require("openai");
+const axios = require("axios");
+const TelegramBot = require("node-telegram-bot-api");
+const WebSocket = require("ws");
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
-
-const axios = require("axios");
-const TelegramBot = require("node-telegram-bot-api");
-const WebSocket = require("ws");
 
 // =====================================
 // TELEGRAM CONFIG
 // =====================================
 
 const bot = new TelegramBot(
-  process.env.TELEGRAM_BOT_TOKEN
+  process.env.TELEGRAM_BOT_TOKEN,
+  { polling: true }
 );
 
 const CHAT_ID =
@@ -30,8 +30,6 @@ const CHAT_ID =
 // =====================================
 
 const scanned = new Set();
-
-// CLEAR MEMORY EVERY 30 MINUTES
 
 setInterval(() => {
 
@@ -51,12 +49,26 @@ const CONFIG = {
 
   MIN_MARKET_CAP: 15000,
   MAX_MARKET_CAP: 250000,
+
   MIN_LIQUIDITY: 5000,
 
-  // TOKEN AGE
+  // SAFER ENTRY WINDOW
 
   MIN_TOKEN_AGE_MINUTES: 5,
-  MAX_TOKEN_AGE_MINUTES: 120,
+  MAX_TOKEN_AGE_MINUTES: 45,
+
+  // SAFETY FILTERS
+
+  MIN_HOLDERS: 80,
+
+  MAX_TOP_HOLDER_PERCENT: 15,
+  MAX_TOP10_PERCENT: 50,
+
+  MIN_RUG_SCORE: 7000,
+
+  MAX_SELL_TAX: 15,
+
+  MAX_VOL_LIQ_RATIO: 20,
 };
 
 // =====================================
@@ -68,12 +80,10 @@ let activeAI = 0;
 const MAX_AI_CALLS = 3;
 
 // =====================================
-// AI ANALYZER FUNCTION
+// AI ANALYZER
 // =====================================
 
 async function aiAnalyzeToken(token) {
-
-  // LIMIT AI REQUESTS
 
   if (
     activeAI >=
@@ -87,26 +97,32 @@ async function aiAnalyzeToken(token) {
 
   try {
 
-    // FAST PROMPT
-
     const prompt = `
-Analyze this Solana token.
+Analyze this Solana meme coin.
 
-Name: ${token.name}
-MC: ${token.marketCap}
-Liquidity: ${token.liquidity}
-Volume: ${token.volume}
+Data:
+- Market Cap: ${token.marketCap}
+- Liquidity: ${token.liquidity}
+- Volume: ${token.volume}
+- Holders: ${token.holders}
+- Top Holder: ${token.topHolder}%
+- Top 10 Holders: ${token.top10}%
+- LP Locked: ${token.lpLocked}
+- Mint Enabled: ${token.mintEnabled}
+- Freeze Enabled: ${token.freezeEnabled}
 
-Reply shortly:
-- Scam Risk
-- Buy Confidence
-- Verdict
+Evaluate:
+1. Rug probability
+2. Fake volume probability
+3. Whale manipulation risk
+4. Momentum quality
+5. Final verdict
+
+Reply concise.
 `;
 
     const response =
       await openai.chat.completions.create({
-
-        // FASTER MODEL
 
         model: "gpt-4.1-mini",
 
@@ -128,19 +144,19 @@ Reply shortly:
 
   } catch (error) {
 
+    activeAI--;
+
     console.log(
       "AI Error:",
       error.message
     );
-
-    activeAI--;
 
     return "AI analysis failed";
   }
 }
 
 // =====================================
-// SEND TELEGRAM ALERT
+// TELEGRAM ALERT
 // =====================================
 
 async function sendAlert(message) {
@@ -166,6 +182,60 @@ async function sendAlert(message) {
 }
 
 // =====================================
+// TOKEN AGE FILTER
+// =====================================
+
+function isValidTokenAge(
+  pairCreatedAt
+) {
+
+  if (!pairCreatedAt)
+    return false;
+
+  const now = Date.now();
+
+  const ageMinutes =
+
+    (now - pairCreatedAt) /
+    1000 / 60;
+
+  return (
+
+    ageMinutes >=
+      CONFIG.MIN_TOKEN_AGE_MINUTES &&
+
+    ageMinutes <=
+      CONFIG.MAX_TOKEN_AGE_MINUTES
+  );
+}
+
+// =====================================
+// RUGCHECK API
+// =====================================
+
+async function rugCheck(contract) {
+
+  try {
+
+    const response =
+      await axios.get(
+        `https://api.rugcheck.xyz/v1/tokens/${contract}/report`
+      );
+
+    return response.data;
+
+  } catch (error) {
+
+    console.log(
+      "RugCheck Error:",
+      error.message
+    );
+
+    return null;
+  }
+}
+
+// =====================================
 // SCORE ENGINE
 // =====================================
 
@@ -173,7 +243,9 @@ function calculateScore(data) {
 
   let score = 50;
 
-  // liquidity
+  // =====================================
+  // LIQUIDITY
+  // =====================================
 
   if (
     data.liquidity > 20000
@@ -188,7 +260,9 @@ function calculateScore(data) {
     score -= 20;
   }
 
-  // market cap
+  // =====================================
+  // MARKET CAP
+  // =====================================
 
   if (
 
@@ -207,13 +281,87 @@ function calculateScore(data) {
     score -= 25;
   }
 
-  // volume
+  // =====================================
+  // VOLUME
+  // =====================================
 
   if (
     data.volume > 30000
   ) {
 
     score += 15;
+  }
+
+  // =====================================
+  // HOLDERS
+  // =====================================
+
+  if (
+    data.holders > 300
+  ) {
+
+    score += 10;
+
+  } else if (
+    data.holders < 100
+  ) {
+
+    score -= 20;
+  }
+
+  // =====================================
+  // TOP HOLDER
+  // =====================================
+
+  if (
+    data.topHolder > 15
+  ) {
+
+    score -= 35;
+  }
+
+  // =====================================
+  // TOP 10 HOLDERS
+  // =====================================
+
+  if (
+    data.top10 > 50
+  ) {
+
+    score -= 35;
+  }
+
+  // =====================================
+  // MINT ENABLED
+  // =====================================
+
+  if (
+    data.mintEnabled
+  ) {
+
+    score -= 50;
+  }
+
+  // =====================================
+  // FREEZE ENABLED
+  // =====================================
+
+  if (
+    data.freezeEnabled
+  ) {
+
+    score -= 40;
+  }
+
+  // =====================================
+  // LP UNLOCKED
+  // =====================================
+
+  if (
+    !data.lpLocked
+  ) {
+
+    score -= 60;
   }
 
   return Math.max(
@@ -251,39 +399,480 @@ function getSignal(score) {
 }
 
 // =====================================
-// TOKEN AGE FILTER
+// SAFETY ANALYZER
 // =====================================
 
-function isValidTokenAge(
-  pairCreatedAt
+async function analyzeSafety(
+  contract,
+  pair,
+  token
 ) {
 
-  if (!pairCreatedAt) {
+  const rug =
+    await rugCheck(contract);
 
-    return false;
+  if (!rug) {
+
+    return {
+      safe: false,
+      reason: "No RugCheck"
+    };
   }
 
-  const now = Date.now();
+  // =====================================
+  // LP LOCK
+  // =====================================
 
-  const ageMinutes =
+  const lpUnlocked =
+    rug.risks?.some(r =>
 
-    (now - pairCreatedAt) /
-    1000 / 60;
+      r.name?.toLowerCase()
+        .includes("lp unlocked")
+    );
 
-  return (
+  if (lpUnlocked) {
 
-    ageMinutes >=
-      CONFIG
-        .MIN_TOKEN_AGE_MINUTES &&
+    return {
+      safe: false,
+      reason: "LP Unlocked"
+    };
+  }
 
-    ageMinutes <=
-      CONFIG
-        .MAX_TOKEN_AGE_MINUTES
-  );
+  // =====================================
+  // MINT AUTHORITY
+  // =====================================
+
+  const mintEnabled =
+
+    rug.token?.mintAuthority
+      !== null;
+
+  if (mintEnabled) {
+
+    return {
+      safe: false,
+      reason: "Mint Enabled"
+    };
+  }
+
+  // =====================================
+  // FREEZE AUTHORITY
+  // =====================================
+
+  const freezeEnabled =
+
+    rug.token?.freezeAuthority
+      !== null;
+
+  if (freezeEnabled) {
+
+    return {
+      safe: false,
+      reason: "Freeze Enabled"
+    };
+  }
+
+  // =====================================
+  // RUG SCORE
+  // =====================================
+
+  const rugScore =
+    rug.score || 0;
+
+  if (
+    rugScore <
+    CONFIG.MIN_RUG_SCORE
+  ) {
+
+    return {
+      safe: false,
+      reason: "Low Rug Score"
+    };
+  }
+
+  // =====================================
+  // HOLDER ANALYSIS
+  // =====================================
+
+  const holders =
+    rug.tokenMeta?.holders || 0;
+
+  if (
+    holders <
+    CONFIG.MIN_HOLDERS
+  ) {
+
+    return {
+      safe: false,
+      reason: "Low Holders"
+    };
+  }
+
+  const topHolders =
+    rug.tokenMeta?.topHolders || [];
+
+  const topHolder =
+    topHolders[0]?.pct || 0;
+
+  if (
+    topHolder >
+    CONFIG.MAX_TOP_HOLDER_PERCENT
+  ) {
+
+    return {
+      safe: false,
+      reason: "Whale Controlled"
+    };
+  }
+
+  const top10 =
+
+    topHolders
+      .slice(0, 10)
+      .reduce(
+        (sum, h) =>
+          sum + (h.pct || 0),
+        0
+      );
+
+  if (
+    top10 >
+    CONFIG.MAX_TOP10_PERCENT
+  ) {
+
+    return {
+      safe: false,
+      reason:
+        "Supply Concentrated"
+    };
+  }
+
+  // =====================================
+  // FAKE VOLUME
+  // =====================================
+
+  const liquidity =
+    pair.liquidity?.usd || 1;
+
+  const volume =
+    pair.volume?.h24 || 0;
+
+  const volRatio =
+    volume / liquidity;
+
+  if (
+    volRatio >
+    CONFIG.MAX_VOL_LIQ_RATIO
+  ) {
+
+    return {
+      safe: false,
+      reason: "Fake Volume"
+    };
+  }
+
+  // =====================================
+  // BUY / SELL RATIO
+  // =====================================
+
+  const buys =
+    pair.txns?.h1?.buys || 0;
+
+  const sells =
+    pair.txns?.h1?.sells || 0;
+
+  if (
+    buys > 0 &&
+    sells === 0
+  ) {
+
+    return {
+      safe: false,
+      reason:
+        "Possible Honeypot"
+    };
+  }
+
+  // =====================================
+  // SOCIALS CHECK
+  // =====================================
+
+  const hasSocials =
+
+    token?.links?.length > 0 ||
+
+    pair.info?.websites?.length > 0 ||
+
+    pair.info?.socials?.length > 0;
+
+  if (!hasSocials) {
+
+    return {
+      safe: false,
+      reason: "No Socials"
+    };
+  }
+
+  return {
+
+    safe: true,
+
+    rugScore,
+
+    holders,
+
+    topHolder,
+
+    top10,
+
+    mintEnabled,
+
+    freezeEnabled,
+
+    lpLocked: !lpUnlocked
+  };
 }
 
 // =====================================
-// DEXSCREENER TRACKER
+// PROCESS TOKEN
+// =====================================
+
+async function processToken(
+  contract,
+  tokenName,
+  tokenUrl
+) {
+
+  try {
+
+    const pairResponse =
+      await axios.get(
+        `https://api.dexscreener.com/latest/dex/search?q=${contract}`
+      );
+
+    const pairs =
+      pairResponse.data
+        .pairs || [];
+
+    const pair =
+      pairs.find(
+        (p) =>
+
+          p.chainId ===
+            "solana" &&
+
+          p.liquidity?.usd > 0
+      );
+
+    if (!pair)
+      return;
+
+    // =====================================
+    // TOKEN AGE
+    // =====================================
+
+    if (
+      !isValidTokenAge(
+        pair.pairCreatedAt
+      )
+    ) {
+
+      console.log(
+        `Skipped Old Token: ${contract}`
+      );
+
+      return;
+    }
+
+    // =====================================
+    // MARKET DATA
+    // =====================================
+
+    const marketCap =
+      pair.marketCap || 0;
+
+    const liquidity =
+      pair.liquidity?.usd || 0;
+
+    const volume =
+      pair.volume?.h24 || 0;
+
+    // =====================================
+    // BASIC FILTERS
+    // =====================================
+
+    if (
+
+      marketCap <
+        CONFIG.MIN_MARKET_CAP ||
+
+      marketCap >
+        CONFIG.MAX_MARKET_CAP ||
+
+      liquidity <
+        CONFIG.MIN_LIQUIDITY
+
+    ) {
+
+      return;
+    }
+
+    // =====================================
+    // SAFETY CHECKS
+    // =====================================
+
+    const safety =
+      await analyzeSafety(
+        contract,
+        pair,
+        pair
+      );
+
+    if (!safety.safe) {
+
+      console.log(
+        `Rejected ${contract}: ${safety.reason}`
+      );
+
+      return;
+    }
+
+    // =====================================
+    // SCORE
+    // =====================================
+
+    const score =
+      calculateScore({
+
+        marketCap,
+        liquidity,
+        volume,
+
+        holders:
+          safety.holders,
+
+        topHolder:
+          safety.topHolder,
+
+        top10:
+          safety.top10,
+
+        mintEnabled:
+          safety.mintEnabled,
+
+        freezeEnabled:
+          safety.freezeEnabled,
+
+        lpLocked:
+          safety.lpLocked
+      });
+
+    const result =
+      getSignal(score);
+
+    if (!result.allowed)
+      return;
+
+    // =====================================
+    // AI
+    // =====================================
+
+    let aiResult =
+      "Skipped";
+
+    if (score >= 75) {
+
+      aiResult =
+        await aiAnalyzeToken({
+
+          marketCap,
+          liquidity,
+          volume,
+
+          holders:
+            safety.holders,
+
+          topHolder:
+            safety.topHolder,
+
+          top10:
+            safety.top10,
+
+          mintEnabled:
+            safety.mintEnabled,
+
+          freezeEnabled:
+            safety.freezeEnabled,
+
+          lpLocked:
+            safety.lpLocked
+        });
+    }
+
+    // =====================================
+    // ALERT
+    // =====================================
+
+    await sendAlert(`
+
+🚨 ${result.signal}
+
+🪙 ${tokenName}
+
+📄 Contract:
+${contract}
+
+💰 Market Cap:
+$${marketCap.toLocaleString()}
+
+💧 Liquidity:
+$${liquidity.toLocaleString()}
+
+📊 Volume:
+$${volume.toLocaleString()}
+
+👥 Holders:
+${safety.holders}
+
+🐋 Top Holder:
+${safety.topHolder.toFixed(2)}%
+
+🏦 Top 10:
+${safety.top10.toFixed(2)}%
+
+🛡 Rug Score:
+${safety.rugScore}
+
+📈 Score:
+${score}/100
+
+🧠 AI:
+${aiResult}
+
+🔒 LP Locked:
+${safety.lpLocked ? "YES" : "NO"}
+
+🪙 Mint:
+${safety.mintEnabled ? "ON" : "OFF"}
+
+❄️ Freeze:
+${safety.freezeEnabled ? "ON" : "OFF"}
+
+🔗 ${tokenUrl || "No URL"}
+
+`);
+
+  } catch (error) {
+
+    console.log(
+      "Process Token Error:",
+      error.message
+    );
+  }
+}
+
+// =====================================
+// DEXSCREENER SCANNER
 // =====================================
 
 async function scanDexScreener() {
@@ -318,177 +907,22 @@ async function scanDexScreener() {
 
       scanned.add(contract);
 
-      // =====================================
-      // LIVE DATA
-      // =====================================
+      await processToken(
 
-      let marketCap = 0;
-      let liquidity = 0;
-      let volume = 0;
+        contract,
 
-      try {
+        token.name ||
 
-        const pairResponse =
-          await axios.get(
-            `https://api.dexscreener.com/latest/dex/search?q=${contract}`
-          );
+        contract,
 
-        const pairs =
-          pairResponse.data
-            .pairs || [];
-
-        const pair =
-          pairs.find(
-            (p) =>
-
-              p.chainId ===
-                "solana" &&
-
-              p.liquidity?.usd >
-                0
-          );
-
-        if (!pair) continue;
-
-        // TOKEN AGE
-
-        if (
-          !isValidTokenAge(
-            pair.pairCreatedAt
-          )
-        ) {
-
-          console.log(
-            `Skipped Old/New Token: ${contract}`
-          );
-
-          continue;
-        }
-
-        marketCap =
-          pair.marketCap || 0;
-
-        liquidity =
-          pair.liquidity?.usd || 0;
-
-        volume =
-          pair.volume?.h24 || 0;
-
-      } catch (error) {
-
-        console.log(
-          "Pair Lookup Error:",
-          error.message
-        );
-
-        continue;
-      }
-
-      // =====================================
-      // FILTERS
-      // =====================================
-
-      if (
-
-        marketCap <
-          CONFIG
-            .MIN_MARKET_CAP ||
-
-        marketCap >
-          CONFIG
-            .MAX_MARKET_CAP ||
-
-        liquidity <
-          CONFIG
-            .MIN_LIQUIDITY
-
-      ) continue;
-
-      // =====================================
-      // SCORE
-      // =====================================
-
-      const score =
-        calculateScore({
-
-          marketCap,
-          liquidity,
-          volume
-        });
-
-      const result =
-        getSignal(score);
-
-      // =====================================
-      // REJECT WEAK TOKENS
-      // =====================================
-
-      if (!result.allowed) {
-
-        console.log(
-          `Rejected Coin: ${contract}`
-        );
-
-        continue;
-      }
-
-      // =====================================
-      // AI ONLY FOR HIGH SCORES
-      // =====================================
-
-      let aiResult =
-        "Skipped";
-
-      if (score >= 75) {
-
-        aiResult =
-          await aiAnalyzeToken({
-
-            name: contract,
-            marketCap,
-            liquidity,
-            volume
-          });
-      }
-
-      // =====================================
-      // SEND ALERT
-      // =====================================
-
-      await sendAlert(`
-
-🚨 DEXSCREENER SIGNAL ${result.signal}
-
-📄 Contract:
-${contract}
-
-💰 Market Cap:
-$${marketCap.toLocaleString()}
-
-💧 Liquidity:
-$${liquidity.toLocaleString()}
-
-📊 Volume:
-$${volume.toLocaleString()}
-
-📈 Score:
-${score}/100
-
-🧠 AI:
-${aiResult}
-
-⚡ Real-Time Alert
-
-🔗 ${token.url || "No URL"}
-
-`);
+        token.url
+      );
     }
 
   } catch (error) {
 
     console.log(
       "Dex Error:",
-      error.response?.data ||
       error.message
     );
   }
@@ -540,154 +974,16 @@ function startPumpFun() {
           token.mint
         );
 
-        // =====================================
-        // LIVE DATA
-        // =====================================
+        await processToken(
 
-        let marketCap =
-          token.marketCapSol || 0;
+          token.mint,
 
-        let liquidity = 0;
-        let volume = 0;
+          token.name ||
 
-        try {
+          "Unknown",
 
-          const pairResponse =
-            await axios.get(
-              `https://api.dexscreener.com/latest/dex/search?q=${token.mint}`
-            );
-
-          const pairs =
-            pairResponse.data
-              .pairs || [];
-
-          const pair =
-            pairs.find(
-              (p) =>
-
-                p.chainId ===
-                  "solana" &&
-
-                p.liquidity?.usd >
-                  0
-            );
-
-          if (pair) {
-
-            // TOKEN AGE
-
-            if (
-              !isValidTokenAge(
-                pair.pairCreatedAt
-              )
-            ) {
-
-              console.log(
-                `Skipped Old/New Token: ${token.name}`
-              );
-
-              return;
-            }
-
-            marketCap =
-              pair.marketCap ||
-              marketCap;
-
-            liquidity =
-              pair.liquidity?.usd || 0;
-
-            volume =
-              pair.volume?.h24 || 0;
-          }
-
-        } catch (error) {
-
-          console.log(
-            "Pump Pair Lookup Error:",
-            error.message
-          );
-        }
-
-        // =====================================
-        // SCORE
-        // =====================================
-
-        const score =
-          calculateScore({
-
-            marketCap,
-            liquidity,
-            volume
-          });
-
-        const result =
-          getSignal(score);
-
-        // =====================================
-        // REJECT WEAK TOKENS
-        // =====================================
-
-        if (!result.allowed) {
-
-          console.log(
-            `Rejected Coin: ${token.name}`
-          );
-
-          return;
-        }
-
-        // =====================================
-        // AI ONLY FOR HIGH SCORES
-        // =====================================
-
-        let aiResult =
-          "Skipped";
-
-        if (score >= 75) {
-
-          aiResult =
-            await aiAnalyzeToken({
-
-              name: token.name,
-              marketCap,
-              liquidity,
-              volume
-            });
-        }
-
-        // =====================================
-        // SEND ALERT
-        // =====================================
-
-        await sendAlert(`
-
-🚀 PUMPFUN SIGNAL ${result.signal}
-
-🪙 ${token.name}
-
-📄 Contract:
-${token.mint}
-
-💰 Market Cap:
-$${marketCap.toLocaleString()}
-
-💧 Liquidity:
-$${liquidity.toLocaleString()}
-
-📊 Volume:
-$${volume.toLocaleString()}
-
-📈 Score:
-${score}/100
-
-🧠 AI:
-${aiResult}
-
-⚡ Real-Time Alert
-
-🔗 https://pump.fun/${token.mint}
-
-`);
+          `https://pump.fun/${token.mint}`
+        );
 
       } catch (error) {
 
@@ -725,16 +1021,12 @@ ${aiResult}
 // =====================================
 
 console.log(
-  "🚀 FAST AI ALPHA BOT STARTED"
+  "🚀 SAFE AI ALPHA BOT STARTED"
 );
 
 startPumpFun();
 
 scanDexScreener();
-
-// =====================================
-// FAST SCAN SPEED
-// =====================================
 
 setInterval(
   scanDexScreener,
