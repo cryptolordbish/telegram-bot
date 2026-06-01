@@ -1,3 +1,68 @@
+console.log(
+  "🚀 SAFE AI ALPHA BOT STARTED"
+);
+
+async function reAnalyzeTokens() {
+
+  console.log(
+    "Running Re-Analysis..."
+  );
+
+  for (
+    const [
+      contract,
+      token
+    ] of trackedTokens
+  ) {
+
+    const ageMinutes =
+
+      (Date.now() -
+        token.pairCreatedAt)
+      / 1000 / 60;
+
+    if (
+      ageMinutes >
+      CONFIG.MAX_TOKEN_AGE_MINUTES
+    ) {
+
+      trackedTokens.delete(
+        contract
+      );
+
+      console.log(
+        `Stopped Tracking ${contract}`
+      );
+
+      continue;
+    }
+
+    const minutesSinceCheck =
+
+      (Date.now() -
+        token.lastChecked)
+      / 1000 / 60;
+
+    if (
+      minutesSinceCheck < 5
+    ) continue;
+
+    token.lastChecked =
+      Date.now();
+
+    console.log(
+      `Rechecking ${contract}`
+    );
+
+    await processToken(
+      token.contract,
+      token.tokenName,
+      token.tokenUrl,
+      true
+    );
+  }
+}
+
 require("dotenv").config();
 
 // =====================================
@@ -30,16 +95,7 @@ const CHAT_ID =
 // =====================================
 
 const scanned = new Set();
-
-setInterval(() => {
-
-  scanned.clear();
-
-  console.log(
-    "Scanned memory cleared"
-  );
-
-}, 1000 * 60 * 30);
+const trackedTokens = new Map();
 
 // =====================================
 // CONFIG
@@ -671,18 +727,42 @@ async function processToken(
     // TOKEN AGE
     // =====================================
 
+    const ageMinutes =
+     (Date.now() - pair.pairCreatedAt)
+     / 1000 / 60;
+
     if (
-      !isValidTokenAge(
-        pair.pairCreatedAt
-      )
+     ageMinutes >
+     CONFIG.MAX_TOKEN_AGE_MINUTES
     ) {
 
-      console.log(
-        `Skipped Old Token: ${contract}`
+      trackedTokens.delete(
+        contract
       );
-
+ 
       return;
     }
+
+    const existing =
+  trackedTokens.get(contract);
+
+trackedTokens.set(
+  contract,
+  {
+    contract,
+    tokenName,
+    tokenUrl,
+    pairCreatedAt:
+      pair.pairCreatedAt,
+
+    lastChecked:
+      existing?.lastChecked ||
+      Date.now(),
+
+    lastSignal:
+      existing?.lastSignal
+  }
+);
 
     // =====================================
     // MARKET DATA
@@ -769,6 +849,23 @@ async function processToken(
 
     const result =
       getSignal(score);
+      const tracked =
+  trackedTokens.get(contract);
+
+if (
+  tracked &&
+  tracked.lastSignal ===
+  result.signal
+) {
+
+  return;
+}
+
+if (tracked) {
+
+  tracked.lastSignal =
+    result.signal;
+}
 
     if (!result.allowed)
       return;
@@ -1031,4 +1128,9 @@ scanDexScreener();
 setInterval(
   scanDexScreener,
   5000
+);
+
+setInterval(
+  reAnalyzeTokens,
+  1000 * 60 * 5
 );
