@@ -120,7 +120,7 @@ const CONFIG = {
   MAX_TOP_HOLDER_PERCENT: 15,
   MAX_TOP10_PERCENT: 50,
 
-  MIN_RUG_SCORE: 7000,
+  MIN_RUG_SCORE: 1000,
 
   MAX_SELL_TAX: 15,
 
@@ -533,18 +533,18 @@ async function analyzeSafety(
   // =====================================
 
   const rugScore =
-    rug.score || 0;
+  rug.score || 0;
 
-  if (
-    rugScore <
-    CONFIG.MIN_RUG_SCORE
-  ) {
+if (
+  rugScore <
+  CONFIG.MIN_RUG_SCORE
+) {
 
-    return {
-      safe: false,
-      reason: "Low Rug Score"
-    };
-  }
+  return {
+    safe: false,
+    reason: "Low Rug Score"
+  };
+}
 
   // =====================================
   // HOLDER ANALYSIS
@@ -730,6 +730,13 @@ async function processToken(
     const ageMinutes =
      (Date.now() - pair.pairCreatedAt)
      / 1000 / 60;
+
+    if (
+     ageMinutes <
+     CONFIG.MIN_TOKEN_AGE_MINUTES
+    ) {
+     return;
+   }
 
     if (
      ageMinutes >
@@ -969,150 +976,91 @@ ${safety.freezeEnabled ? "ON" : "OFF"}
 }
 
 // =====================================
-// DEXSCREENER SCANNER
-// =====================================
-
-async function scanDexScreener() {
-
-  try {
-
-    console.log(
-      "Scanning DexScreener..."
-    );
-
-    const response =
-      await axios.get(
-        "https://api.dexscreener.com/token-profiles/latest/v1"
-      );
-
-    const tokens =
-      response.data || [];
-
-    for (const token of tokens) {
-
-      if (
-        token.chainId !==
-        "solana"
-      ) continue;
-
-      const contract =
-        token.tokenAddress;
-
-      if (
-        scanned.has(contract)
-      ) continue;
-
-      scanned.add(contract);
-
-      await processToken(
-
-        contract,
-
-        token.name ||
-
-        contract,
-
-        token.url
-      );
-    }
-
-  } catch (error) {
-
-    console.log(
-      "Dex Error:",
-      error.message
-    );
-  }
-}
-
-// =====================================
 // PUMPFUN TRACKER
 // =====================================
-
-function startPumpFun() {
-
-  const ws = new WebSocket(
-    "wss://pumpportal.fun/api/data"
-  );
-
-  ws.on("open", () => {
-
-    console.log(
-      "Pump.fun Connected"
-    );
-
-    ws.send(
-      JSON.stringify({
-        method:
-          "subscribeNewToken"
-      })
-    );
-  });
-
-  ws.on(
-    "message",
-    async (data) => {
-
-      try {
-
-        const token =
-          JSON.parse(data);
-
-        if (!token.mint)
-          return;
-
-        if (
-          scanned.has(
-            token.mint
-          )
-        ) return;
-
-        scanned.add(
-          token.mint
-        );
-
-        await processToken(
-
-          token.mint,
-
-          token.name ||
-
-          "Unknown",
-
-          `https://pump.fun/${token.mint}`
-        );
-
-      } catch (error) {
-
-        console.log(
-          "Pumpfun Error:",
-          error.message
-        );
-      }
-    }
-  );
-
-  ws.on("close", () => {
-
-    console.log(
-      "Pump.fun Reconnecting..."
-    );
-
-    setTimeout(
-      startPumpFun,
-      5000
-    );
-  });
-
-  ws.on("error", (error) => {
-
-    console.log(
-      "Pumpfun WS Error:",
-      error.message
-    );
-  });
-}
-
+function startPumpFun() {  
+  
+  const ws = new WebSocket(  
+    "wss://pumpportal.fun/api/data"  
+  );  
+  
+  ws.on("open", () => {  
+  
+    console.log(  
+      "Pump.fun Connected"  
+    );  
+  
+    ws.send(  
+      JSON.stringify({  
+        method:  
+          "subscribeNewToken"  
+      })  
+    );  
+  });  
+  
+  ws.on(  
+    "message",  
+    async (data) => {  
+  
+      try {  
+  
+        const token =  
+          JSON.parse(data);  
+  
+        if (!token.mint)  
+          return;  
+  
+        if (  
+          scanned.has(  
+            token.mint  
+          )  
+        ) return;  
+  
+        scanned.add(  
+          token.mint  
+        );  
+  
+        await processToken(  
+  
+          token.mint,  
+  
+          token.name ||  
+  
+          "Unknown",  
+  
+          https//pump.fun/${token.mint}  
+        );  
+  
+      } catch (error) {  
+  
+        console.log(  
+          "Pumpfun Error:",  
+          error.message  
+        );  
+      }  
+    }  
+  );  
+  
+  ws.on("close", () => {  
+  
+    console.log(  
+      "Pump.fun Reconnecting..."  
+    );  
+  
+    setTimeout(  
+      startPumpFun,  
+      5000  
+    );  
+  });  
+  
+  ws.on("error", (error) => {  
+  
+    console.log(  
+      "Pumpfun WS Error:",  
+      error.message  
+    );  
+  });  
+}  
 // =====================================
 // START BOT
 // =====================================
@@ -1123,14 +1071,12 @@ console.log(
 
 startPumpFun();
 
-scanDexScreener();
-
-setInterval(
-  scanDexScreener,
-  5000
-);
-
 setInterval(
   reAnalyzeTokens,
   1000 * 60 * 5
+);
+
+setInterval(
+  cleanupScanned,
+  1000 * 60 * 30
 );
