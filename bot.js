@@ -103,19 +103,19 @@ const trackedTokens = new Map();
 
 const CONFIG = {
 
-  MIN_MARKET_CAP: 15000,
+  MIN_MARKET_CAP: 5000,
   MAX_MARKET_CAP: 250000,
 
-  MIN_LIQUIDITY: 5000,
+  MIN_LIQUIDITY: 3000,
 
   // SAFER ENTRY WINDOW
 
-  MIN_TOKEN_AGE_MINUTES: 5,
+  MIN_TOKEN_AGE_MINUTES: 2,
   MAX_TOKEN_AGE_MINUTES: 45,
 
   // SAFETY FILTERS
 
-  MIN_HOLDERS: 80,
+  MIN_HOLDERS: 30,
 
   MAX_TOP_HOLDER_PERCENT: 15,
   MAX_TOP10_PERCENT: 50,
@@ -535,6 +535,11 @@ async function analyzeSafety(
   const rugScore =
   rug.score || 0;
 
+  console.log(
+  `Rug Score for ${contract}:`,
+  rugScore
+);
+  
 if (
   rugScore <
   CONFIG.MIN_RUG_SCORE
@@ -978,89 +983,178 @@ ${safety.freezeEnabled ? "ON" : "OFF"}
 // =====================================
 // PUMPFUN TRACKER
 // =====================================
-function startPumpFun() {  
-  
-  const ws = new WebSocket(  
-    "wss://pumpportal.fun/api/data"  
-  );  
-  
-  ws.on("open", () => {  
-  
-    console.log(  
-      "Pump.fun Connected"  
-    );  
-  
-    ws.send(  
-      JSON.stringify({  
-        method:  
-          "subscribeNewToken"  
-      })  
-    );  
-  });  
-  
-  ws.on(  
-    "message",  
-    async (data) => {  
-  
-      try {  
-  
-        const token =  
-          JSON.parse(data);  
-  
-        if (!token.mint)  
-          return;  
-  
-        if (  
-          scanned.has(  
-            token.mint  
-          )  
-        ) return;  
-  
-        scanned.add(  
-          token.mint  
-        );  
-  
-        await processToken(  
-  
-          token.mint,  
-  
-          token.name ||  
-  
-          "Unknown",  
-  
-          https//pump.fun/${token.mint}  
-        );  
-  
-      } catch (error) {  
-  
-        console.log(  
-          "Pumpfun Error:",  
-          error.message  
-        );  
-      }  
-    }  
-  );  
-  
-  ws.on("close", () => {  
-  
-    console.log(  
-      "Pump.fun Reconnecting..."  
-    );  
-  
-    setTimeout(  
-      startPumpFun,  
-      5000  
-    );  
-  });  
-  
-  ws.on("error", (error) => {  
-  
-    console.log(  
-      "Pumpfun WS Error:",  
-      error.message  
-    );  
-  });  
-}  
+function startPumpFun() {
+
+  const ws = new WebSocket(
+    "wss://pumpportal.fun/api/data"
+  );
+
+  ws.on("open", () => {
+
+    console.log(
+      "Pump.fun Connected"
+    );
+
+    ws.send(
+      JSON.stringify({
+        method:
+          "subscribeNewToken"
+      })
+    );
+  });
+
+  ws.on(
+    "message",
+    async (data) => {
+
+      try {
+
+        const token =
+          JSON.parse(data);
+
+        if (!token.mint)
+          return;
+
+        const contract =
+          token.mint;
+
+        if (
+          scanned.has(
+            contract
+          )
+        ) {
+          return;
+        }
+
+        scanned.add(
+          contract
+        );
+
+        console.log(
+          `New Launch: ${token.name || "Unknown"}`
+        );
+
+        trackedTokens.set(
+          contract,
+          {
+            contract,
+            tokenName:
+              token.name ||
+              "Unknown",
+
+            tokenUrl:
+              `https://pump.fun/${contract}`,
+
+            pairCreatedAt:
+              Date.now(),
+
+            lastChecked:
+              Date.now(),
+
+            lastSignal:
+              null
+          }
+        );
+
+        // Wait 2 minutes
+        setTimeout(
+          async () => {
+
+            await processToken(
+
+              contract,
+
+              token.name ||
+                "Unknown",
+
+              `https://pump.fun/${contract}`
+            );
+
+          },
+          1000 * 60 * 2
+        );
+
+      } catch (error) {
+
+        console.log(
+          "Pumpfun Error:",
+          error.message
+        );
+      }
+    }
+  );
+
+  ws.on("close", () => {
+
+    console.log(
+      "Pump.fun Reconnecting..."
+    );
+
+    setTimeout(
+      startPumpFun,
+      5000
+    );
+  });
+
+  ws.on("error", (error) => {
+
+    console.log(
+      "Pumpfun WS Error:",
+      error.message
+    );
+  });
+}
+
+// =====================================
+// CLEANUP MEMORY
+// =====================================
+
+function cleanupScanned() {
+
+  const now =
+    Date.now();
+
+  for (
+    const contract
+    of scanned
+  ) {
+
+    const tracked =
+      trackedTokens.get(
+        contract
+      );
+
+    if (
+      !tracked
+    ) {
+
+      scanned.delete(
+        contract
+      );
+
+      continue;
+    }
+
+    const ageMinutes =
+
+      (now -
+        tracked.pairCreatedAt)
+      / 1000 / 60;
+
+    if (
+      ageMinutes > 180
+    ) {
+
+      scanned.delete(
+        contract
+      );
+
+      trackedTokens.delete(
+        contract
+      );
+    }
+  }
+}
 // =====================================
 // START BOT
 // =====================================
