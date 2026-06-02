@@ -706,6 +706,10 @@ async function processToken(
 
   try {
 
+    console.log(
+      `Processing ${tokenName} ${contract}`
+    );
+
     const pairResponse =
       await axios.get(
         `https://api.dexscreener.com/latest/dex/search?q=${contract}`
@@ -725,8 +729,14 @@ async function processToken(
           p.liquidity?.usd > 0
       );
 
-    if (!pair)
-      return;
+    if (!pair) {
+
+     console.log(
+       `${contract}: No Pair Found`
+    );
+
+    return;
+  }
 
     // =====================================
     // TOKEN AGE
@@ -788,6 +798,10 @@ trackedTokens.set(
 
     const volume =
       pair.volume?.h24 || 0;
+
+    console.log(
+      `${tokenName} | MC=${marketCap} | LIQ=${liquidity}`
+  );
 
     // =====================================
     // BASIC FILTERS
