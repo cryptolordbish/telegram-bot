@@ -111,7 +111,7 @@ const CONFIG = {
   // SAFER ENTRY WINDOW
 
   MIN_TOKEN_AGE_MINUTES: 5,
-  MAX_TOKEN_AGE_MINUTES: 45,
+  MAX_TOKEN_AGE_MINUTES: 60,
 
   // SAFETY FILTERS
 
@@ -352,19 +352,18 @@ function calculateScore(data) {
   // HOLDERS
   // =====================================
 
-  if (
-    data.holders > 300
-  ) {
+ if (
+  data.holders > 300
+) {
 
-    score += 10;
+  score += 10;
 
-  } else if (
-    data.holders < 100
-  ) {
+} else if (
+  data.holders > 100
+) {
 
-    score -= 20;
-  }
-
+  score += 5;
+}
   // =====================================
   // TOP HOLDER
   // =====================================
@@ -464,16 +463,25 @@ async function analyzeSafety(
   token
 ) {
 
+  console.log(
+    `${contract}: Running Safety`
+  );
+
   const rug =
     await rugCheck(contract);
 
   if (!rug) {
+
+    console.log(
+      `${contract}: No RugCheck Data`
+    );
 
     return {
       safe: false,
       reason: "No RugCheck"
     };
   }
+
 
   // =====================================
   // LP LOCK
@@ -555,59 +563,72 @@ if (
   // HOLDER ANALYSIS
   // =====================================
 
-  const holders =
-    rug.tokenMeta?.holders || 0;
+   const holders =
+  rug.tokenMeta?.holders || 0;
 
-  if (
-    holders <
-    CONFIG.MIN_HOLDERS
-  ) {
+console.log(
+  `Holders for ${contract}: ${holders}`
+);
 
-    return {
-      safe: false,
-      reason: "Low Holders"
-    };
-  }
+if (
+  holders <
+  CONFIG.MIN_HOLDERS
+) {
 
-  const topHolders =
-    rug.tokenMeta?.topHolders || [];
+  return {
+    safe: false,
+    reason: "Low Holders"
+  };
+}
 
-  const topHolder =
-    topHolders[0]?.pct || 0;
+const topHolders =
+  rug.tokenMeta?.topHolders || [];
 
-  if (
-    topHolder >
-    CONFIG.MAX_TOP_HOLDER_PERCENT
-  ) {
+const topHolder =
+  topHolders[0]?.pct || 0;
 
-    return {
-      safe: false,
-      reason: "Whale Controlled"
-    };
-  }
+console.log(
+  `Top Holder for ${contract}: ${topHolder}%`
+);
 
-  const top10 =
+if (
+  topHolder >
+  CONFIG.MAX_TOP_HOLDER_PERCENT
+) {
 
-    topHolders
-      .slice(0, 10)
-      .reduce(
-        (sum, h) =>
-          sum + (h.pct || 0),
-        0
-      );
+  return {
+    safe: false,
+    reason: "Whale Controlled"
+  };
+}
 
-  if (
-    top10 >
-    CONFIG.MAX_TOP10_PERCENT
-  ) {
+const top10 =
+  topHolders
+    .slice(0, 10)
+    .reduce(
+      (sum, h) =>
+        sum + (h.pct || 0),
+      0
+    );
 
-    return {
-      safe: false,
-      reason:
-        "Supply Concentrated"
-    };
-  }
+console.log(
+  `Top10 for ${contract}: ${top10}%`
+);
 
+if (
+  top10 >
+  CONFIG.MAX_TOP10_PERCENT
+) {
+
+  return {
+    safe: false,
+    reason:
+      "Supply Concentrated"
+  };
+}
+  
+// Continue with the rest of your checks below...
+  
   // =====================================
   // FAKE VOLUME
   // =====================================
