@@ -579,9 +579,11 @@ if (
   // HOLDER ANALYSIS
   // =====================================
 
-   const holders =
-  rug.tokenMeta?.holders || 0;
-
+  const holders =
+  rug.totalHolders ??
+  rug.tokenMeta?.holders ??
+  0;
+  
 console.log(
   `Holders for ${contract}: ${holders}`
 );
