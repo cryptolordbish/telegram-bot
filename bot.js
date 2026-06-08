@@ -579,6 +579,16 @@ if (
   // HOLDER ANALYSIS
   // =====================================
 
+  console.log(
+  `${contract}: totalHolders =`,
+  rug.totalHolders
+);
+
+console.log(
+  `${contract}: topHolders count =`,
+  rug.topHolders?.length
+);
+  
   const holders =
   rug.totalHolders ??
   rug.tokenMeta?.holders ??
@@ -600,8 +610,8 @@ if (
 }
 
 const topHolders =
-  rug.tokenMeta?.topHolders || [];
-
+  rug.topHolders || [];
+  
 const topHolder =
   topHolders[0]?.pct || 0;
 
