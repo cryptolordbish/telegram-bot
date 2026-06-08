@@ -482,6 +482,19 @@ async function analyzeSafety(
     };
   }
 
+  console.log(
+  `${contract}: tokenMeta =`,
+  JSON.stringify(
+    rug.tokenMeta,
+    null,
+    2
+  )
+);
+
+  console.log(
+  `${contract}: Rug Keys =`,
+  Object.keys(rug)
+);
 
   // =====================================
   // LP LOCK
