@@ -482,15 +482,18 @@ async function analyzeSafety(
     };
   }
 
-  console.log(
-  `${contract}: tokenMeta =`,
-  JSON.stringify(
-    rug.tokenMeta,
-    null,
-    2
+console.log(
+  `${contract}: tokenMeta keys =`,
+  Object.keys(
+    rug.tokenMeta || {}
   )
 );
 
+console.log(
+  `${contract}: holders field =`,
+  rug.tokenMeta?.holders
+);
+  
   console.log(
   `${contract}: Rug Keys =`,
   Object.keys(rug)
