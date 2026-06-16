@@ -29,7 +29,7 @@ async function reAnalyzeTokens() {
       trackedTokens.delete(
         contract
       );
-
+ 
       console.log(
         `Stopped Tracking ${contract}`
       );
@@ -104,7 +104,7 @@ const trackedTokens = new Map();
 const CONFIG = {
 
   MIN_MARKET_CAP: 15000,
-  MAX_MARKET_CAP: 250000,
+  MAX_MARKET_CAP: 500000,
 
   MIN_LIQUIDITY: 5000,
 
