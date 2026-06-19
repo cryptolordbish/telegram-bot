@@ -44,7 +44,7 @@ async function reAnalyzeTokens() {
       / 1000 / 60;
 
     if (
-      minutesSinceCheck < 5
+      minutesSinceCheck < 2
     ) continue;
 
     token.lastChecked =
@@ -1119,7 +1119,7 @@ function startPumpFun() {
           }
         );
 
-        // Wait 2 minutes
+        // Wait 1 minutes
         setTimeout(
           async () => {
 
@@ -1134,7 +1134,7 @@ function startPumpFun() {
             );
 
           },
-          1000 * 60 * 2
+           1000 * 60 * 1 // 1 minute 
         );
 
       } catch (error) {
@@ -1230,7 +1230,7 @@ startPumpFun();
 
 setInterval(
   reAnalyzeTokens,
-  1000 * 60 * 5
+  1000 * 60 
 );
 
 setInterval(
