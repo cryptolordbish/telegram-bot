@@ -44,7 +44,7 @@ async function reAnalyzeTokens() {
       / 1000 / 60;
 
     if (
-      minutesSinceCheck < 2
+      minutesSinceCheck < 5
     ) continue;
 
     token.lastChecked =
@@ -103,10 +103,10 @@ const trackedTokens = new Map();
 
 const CONFIG = {
 
-  MIN_MARKET_CAP: 15000,
+  MIN_MARKET_CAP: 10000,
   MAX_MARKET_CAP: 500000,
 
-  MIN_LIQUIDITY: 5000,
+  MIN_LIQUIDITY: 4000,
 
   // SAFER ENTRY WINDOW
 
@@ -117,7 +117,7 @@ const CONFIG = {
 
   MIN_HOLDERS: 25,
 
-  MAX_TOP_HOLDER_PERCENT: 15,
+  MAX_TOP_HOLDER_PERCENT: 50,
   MAX_TOP10_PERCENT: 50,
 
   MIN_RUG_SCORE: 7000,
@@ -1119,7 +1119,7 @@ function startPumpFun() {
           }
         );
 
-        // Wait 1 minutes
+        // Wait 2 minutes
         setTimeout(
           async () => {
 
@@ -1134,7 +1134,7 @@ function startPumpFun() {
             );
 
           },
-           1000 * 60 * 1 // 1 minute 
+           1000 * 60 * 2 // 2 minute 
         );
 
       } catch (error) {
@@ -1155,7 +1155,7 @@ function startPumpFun() {
 
     setTimeout(
       startPumpFun,
-      5000
+     5000
     );
   });
 
@@ -1230,7 +1230,7 @@ startPumpFun();
 
 setInterval(
   reAnalyzeTokens,
-  1000 * 60 
+  1000 * 60 * 5
 );
 
 setInterval(
