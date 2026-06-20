@@ -369,12 +369,17 @@ function calculateScore(data) {
   // =====================================
 
   if (
-    data.topHolder > 15
+    data.topHolder > 50
   ) {
 
     score -= 35;
   }
+    
+  else if (data.topHolder > 30) {
 
+  score -= 15;
+}
+  
   // =====================================
   // TOP 10 HOLDERS
   // =====================================
@@ -385,6 +390,11 @@ function calculateScore(data) {
 
     score -= 35;
   }
+
+  else if (data.top10 > 40) {
+
+  score -= 15;
+}
 
   // =====================================
   // MINT ENABLED
@@ -785,7 +795,20 @@ async function processToken(
     );
 
     return;
+      
   }
+    catch (error) {
+
+  console.log(
+    "Process Token Error:",
+    error.message
+  );
+
+  console.log(
+    "Failed URL:",
+    error.config?.url
+  );
+}
 
     // =====================================
     // TOKEN AGE
