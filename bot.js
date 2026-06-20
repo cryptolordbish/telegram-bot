@@ -797,25 +797,6 @@ async function processToken(
     return;
       
   }
-       // YOUR REMAINING PROCESS TOKEN CODE
-    // market cap checks
-    // safety checks
-    // AI
-    // telegram alerts
-
-  } catch (error) {
-
-    console.log(
-      "Process Token Error:",
-      error.message
-    );
-
-    console.log(
-      "Failed URL:",
-      error.config?.url
-    );
-  }
-}
 
     // =====================================
     // TOKEN AGE
