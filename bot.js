@@ -797,17 +797,24 @@ async function processToken(
     return;
       
   }
-    catch (error) {
+       // YOUR REMAINING PROCESS TOKEN CODE
+    // market cap checks
+    // safety checks
+    // AI
+    // telegram alerts
 
-  console.log(
-    "Process Token Error:",
-    error.message
-  );
+  } catch (error) {
 
-  console.log(
-    "Failed URL:",
-    error.config?.url
-  );
+    console.log(
+      "Process Token Error:",
+      error.message
+    );
+
+    console.log(
+      "Failed URL:",
+      error.config?.url
+    );
+  }
 }
 
     // =====================================
