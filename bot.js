@@ -97,6 +97,8 @@ const CHAT_ID =
 const scanned = new Set();
 const trackedTokens = new Map();
 
+const aiAnalyzedTokens = new Set();
+
 // =====================================
 // CONFIG
 // =====================================
@@ -115,7 +117,7 @@ const CONFIG = {
 
   // SAFETY FILTERS
 
-  MIN_HOLDERS: 25,
+  MIN_HOLDERS: 15,
 
   MAX_TOP_HOLDER_PERCENT: 50,
   MAX_TOP10_PERCENT: 50,
@@ -960,37 +962,44 @@ if (tracked) {
     // AI
     // =====================================
 
-    let aiResult =
-      "Skipped";
+   let aiResult =
+  "Skipped";
 
-    if (score >= 75) {
+if (
+  score >= 75 &&
+  !aiAnalyzedTokens.has(contract)
+) {
 
-      aiResult =
-        await aiAnalyzeToken({
+  aiResult =
+    await aiAnalyzeToken({
 
-          marketCap,
-          liquidity,
-          volume,
+      marketCap,
+      liquidity,
+      volume,
 
-          holders:
-            safety.holders,
+      holders:
+        safety.holders,
 
-          topHolder:
-            safety.topHolder,
+      topHolder:
+        safety.topHolder,
 
-          top10:
-            safety.top10,
+      top10:
+        safety.top10,
 
-          mintEnabled:
-            safety.mintEnabled,
+      mintEnabled:
+        safety.mintEnabled,
 
-          freezeEnabled:
-            safety.freezeEnabled,
+      freezeEnabled:
+        safety.freezeEnabled,
 
-          lpLocked:
-            safety.lpLocked
-        });
-    }
+      lpLocked:
+        safety.lpLocked
+    });
+
+  aiAnalyzedTokens.add(
+    contract
+  );
+}
 
     // =====================================
     // ALERT
