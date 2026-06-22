@@ -1071,6 +1071,8 @@ ${safety.freezeEnabled ? "ON" : "OFF"}
     error.response?.status
   );
 }
+
+}
   
 // =====================================
 // PUMPFUN TRACKER
