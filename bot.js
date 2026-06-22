@@ -1056,13 +1056,22 @@ ${safety.freezeEnabled ? "ON" : "OFF"}
 
   } catch (error) {
 
-    console.log(
-      "Process Token Error:",
-      error.message
-    );
-  }
-}
+  console.log(
+    "Process Token Error:",
+    error.message
+  );
 
+  console.log(
+    "Failed URL:",
+    error.config?.url
+  );
+
+  console.log(
+    "Status:",
+    error.response?.status
+  );
+}
+  
 // =====================================
 // PUMPFUN TRACKER
 // =====================================
