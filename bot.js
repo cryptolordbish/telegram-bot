@@ -99,6 +99,12 @@ const trackedTokens = new Map();
 
 const aiAnalyzedTokens = new Set();
 
+// PAPER TRADING
+
+const paperTrades = new Map();
+
+const PAPER_BUY_AMOUNT = 40;
+
 // =====================================
 // CONFIG
 // =====================================
