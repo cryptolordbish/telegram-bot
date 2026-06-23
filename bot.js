@@ -5,6 +5,10 @@ console.log(
 async function reAnalyzeTokens() {
 
   console.log(
+  `Tracked Tokens: ${trackedTokens.size}`
+);
+
+  console.log(
     "Running Re-Analysis..."
   );
 
@@ -1283,7 +1287,7 @@ function cleanupScanned() {
       / 1000 / 60;
 
     if (
-      ageMinutes > 180
+      ageMinutes > 60
     ) {
 
       scanned.delete(
