@@ -246,6 +246,50 @@ async function sendAlert(message) {
 }
 
 // =====================================
+// PAPER BUY
+// =====================================
+
+async function paperBuy(
+  contract,
+  tokenName,
+  price,
+  marketCap
+) {
+
+  if (
+    paperTrades.has(contract)
+  ) {
+    return;
+  }
+
+  paperTrades.set(
+    contract,
+    {
+      contract,
+      tokenName,
+
+      entryPrice:
+        Number(price),
+
+      entryMarketCap:
+        marketCap,
+
+      buyAmount:
+        PAPER_BUY_AMOUNT,
+
+      boughtAt:
+        Date.now(),
+
+      sold: false
+    }
+  );
+
+  console.log(
+    `PAPER BUY: ${tokenName}`
+  );
+}
+
+// =====================================
 // TOKEN AGE FILTER
 // =====================================
 
