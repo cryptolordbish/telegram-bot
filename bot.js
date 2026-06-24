@@ -935,13 +935,38 @@ trackedTokens.set(
 
     if (!safety.safe) {
 
-      console.log(
-        `Rejected ${contract}: ${safety.reason}`
-      );
+  console.log(
+    `Rejected ${contract}: ${safety.reason}`
+  );
 
-      return;
-    }
+  if (
 
+    safety.reason ===
+      "Supply Concentrated" ||
+
+    safety.reason ===
+      "Mint Enabled" ||
+
+    safety.reason ===
+      "Freeze Enabled" ||
+
+    safety.reason ===
+      "Low Rug Score"
+
+  ) {
+
+    trackedTokens.delete(
+      contract
+    );
+
+    console.log(
+      `Stopped Tracking ${contract}`
+    );
+  }
+
+  return;
+}
+    
     // =====================================
     // SCORE
     // =====================================
