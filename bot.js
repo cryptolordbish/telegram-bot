@@ -130,7 +130,7 @@ const CONFIG = {
   MIN_HOLDERS: 15,
 
   MAX_TOP_HOLDER_PERCENT: 50,
-  MAX_TOP10_PERCENT: 50,
+  MAX_TOP10_PERCENT: 98,
 
   MIN_RUG_SCORE: 7000,
 
@@ -441,7 +441,7 @@ function calculateScore(data) {
   // =====================================
 
   if (
-    data.top10 > 50
+    data.top10 > 90
   ) {
 
     score -= 35;
