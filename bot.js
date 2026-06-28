@@ -137,7 +137,62 @@ const CONFIG = {
   MAX_SELL_TAX: 15,
 
   MAX_VOL_LIQ_RATIO: 20,
+
+  // API RETRY CONFIG
+  API_RETRY_ATTEMPTS: 3,
+  API_RETRY_DELAY_MS: 1000,
+  API_TIMEOUT_MS: 10000,
 };
+
+// =====================================
+// API HELPER WITH RETRY
+// =====================================
+
+async function fetchWithRetry(
+  url,
+  maxAttempts = CONFIG.API_RETRY_ATTEMPTS
+) {
+  let lastError;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const response = await axios.get(url, {
+        timeout: CONFIG.API_TIMEOUT_MS,
+      });
+      return response;
+    } catch (error) {
+      lastError = error;
+
+      // Don't retry on 404 or 429 (rate limit)
+      if (error.response?.status === 404) {
+        throw error;
+      }
+
+      if (error.response?.status === 429) {
+        console.log(
+          `Rate limited on ${url}. Waiting before retry...`
+        );
+        await new Promise((resolve) =>
+          setTimeout(resolve, 2000 * attempt)
+        );
+        continue;
+      }
+
+      // Retry on timeout or 5xx errors
+      if (attempt < maxAttempts) {
+        const delay = CONFIG.API_RETRY_DELAY_MS * attempt;
+        console.log(
+          `Attempt ${attempt}/${maxAttempts} failed for ${url}. Retrying in ${delay}ms...`
+        );
+        await new Promise((resolve) =>
+          setTimeout(resolve, delay)
+        );
+      }
+    }
+  }
+
+  throw lastError;
+}
 
 // =====================================
 // AI LIMITER
@@ -330,7 +385,7 @@ async function rugCheck(contract) {
   try {
 
     const response =
-      await axios.get(
+      await fetchWithRetry(
         `https://api.rugcheck.xyz/v1/tokens/${contract}/report`
       );
 
@@ -338,10 +393,16 @@ async function rugCheck(contract) {
 
   } catch (error) {
 
-    console.log(
-      "RugCheck Error:",
-      error.message
-    );
+    if (error.response?.status === 404) {
+      console.log(
+        `RugCheck: Token ${contract} not found`
+      );
+    } else {
+      console.log(
+        `RugCheck Error for ${contract}:`,
+        error.message
+      );
+    }
 
     return null;
   }
@@ -809,7 +870,7 @@ async function processToken(
     );
 
     const pairResponse =
-      await axios.get(
+      await fetchWithRetry(
         `https://api.dexscreener.com/latest/dex/search?q=${contract}`
       );
 
@@ -1106,20 +1167,23 @@ ${safety.freezeEnabled ? "ON" : "OFF"}
 
   } catch (error) {
 
-  console.log(
-    "Process Token Error:",
-    error.message
-  );
+  const statusCode = error.response?.status;
+  const errorMessage = error.message;
 
-  console.log(
-    "Failed URL:",
-    error.config?.url
-  );
-
-  console.log(
-    "Status:",
-    error.response?.status
-  );
+  // Only log non-404 errors as failures
+  if (statusCode === 404) {
+    console.log(
+      `Token ${contract} not found on Dexscreener (404)`
+    );
+  } else if (statusCode === 429) {
+    console.log(
+      `Rate limited while processing ${contract}. Will retry on next cycle.`
+    );
+  } else {
+    console.log(
+      `Failed to process ${contract}: ${errorMessage}`
+    );
+  }
 }
 
 }
@@ -1318,3 +1382,4 @@ setInterval(
   cleanupScanned,
   1000 * 60 * 30
 );
+
