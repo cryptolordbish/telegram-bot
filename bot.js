@@ -706,30 +706,30 @@ if (
   
 // Continue with the rest of your checks below...
   
-// =====================================
-// FAKE VOLUME (Monitor Only)
-// =====================================
+  // =====================================
+  // FAKE VOLUME
+  // =====================================
 
-const liquidity =
-  pair.liquidity?.usd || 1;
+  const liquidity =
+    pair.liquidity?.usd || 1;
 
-const volume =
-  pair.volume?.h24 || 0;
+  const volume =
+    pair.volume?.h24 || 0;
 
-const volRatio =
-  volume / liquidity;
+  const volRatio =
+    volume / liquidity;
 
-if (
-  volRatio >
-  CONFIG.MAX_VOL_LIQ_RATIO
-) {
+  if (
+    volRatio >
+    CONFIG.MAX_VOL_LIQ_RATIO
+  ) {
 
-  console.log(
-    `${contract}: High Volume Ratio = ${volRatio.toFixed(2)} (AI will evaluate)`
-  );
+    return {
+      safe: false,
+      reason: "Fake Volume"
+    };
+  }
 
-}
-  
   // =====================================
   // BUY / SELL RATIO
   // =====================================
@@ -808,10 +808,15 @@ async function processToken(
       `Processing ${tokenName} ${contract}`
     );
 
-    const pairResponse =
-      await axios.get(
-        `https://api.dexscreener.com/latest/dex/search?q=${contract}`
-      );
+    try {
+      var pairResponse =
+        await axios.get(
+          `https://api.dexscreener.com/latest/dex/search?q=${contract}`
+        );
+    } catch (apiError) {
+      // Silent fail - will retry in 5 minutes
+      return;
+    }
 
     const pairs =
       pairResponse.data
@@ -1002,41 +1007,36 @@ if (tracked) {
   "Skipped";
 
 if (
-  score >= 65 &&
+  score >= 75 &&
   !aiAnalyzedTokens.has(contract)
 ) {
 
   aiResult =
     await aiAnalyzeToken({
 
-  marketCap,
-  liquidity,
-  volume,
+      marketCap,
+      liquidity,
+      volume,
 
-  volRatio,
+      holders:
+        safety.holders,
 
-  rugScore:
-    safety.rugScore,
+      topHolder:
+        safety.topHolder,
 
-  holders:
-    safety.holders,
+      top10:
+        safety.top10,
 
-  topHolder:
-    safety.topHolder,
+      mintEnabled:
+        safety.mintEnabled,
 
-  top10:
-    safety.top10,
+      freezeEnabled:
+        safety.freezeEnabled,
 
-  mintEnabled:
-    safety.mintEnabled,
+      lpLocked:
+        safety.lpLocked
+    });
 
-  freezeEnabled:
-    safety.freezeEnabled,
-
-  lpLocked:
-    safety.lpLocked
-});
-  
   aiAnalyzedTokens.add(
     contract
   );
@@ -1114,16 +1114,6 @@ ${safety.freezeEnabled ? "ON" : "OFF"}
   console.log(
     "Process Token Error:",
     error.message
-  );
-
-  console.log(
-    "Failed URL:",
-    error.config?.url
-  );
-
-  console.log(
-    "Status:",
-    error.response?.status
   );
 }
 
@@ -1323,3 +1313,4 @@ setInterval(
   cleanupScanned,
   1000 * 60 * 30
 );
+
