@@ -706,30 +706,30 @@ if (
   
 // Continue with the rest of your checks below...
   
-  // =====================================
-  // FAKE VOLUME
-  // =====================================
+// =====================================
+// FAKE VOLUME (Monitor Only)
+// =====================================
 
-  const liquidity =
-    pair.liquidity?.usd || 1;
+const liquidity =
+  pair.liquidity?.usd || 1;
 
-  const volume =
-    pair.volume?.h24 || 0;
+const volume =
+  pair.volume?.h24 || 0;
 
-  const volRatio =
-    volume / liquidity;
+const volRatio =
+  volume / liquidity;
 
-  if (
-    volRatio >
-    CONFIG.MAX_VOL_LIQ_RATIO
-  ) {
+if (
+  volRatio >
+  CONFIG.MAX_VOL_LIQ_RATIO
+) {
 
-    return {
-      safe: false,
-      reason: "Fake Volume"
-    };
-  }
+  console.log(
+    `${contract}: High Volume Ratio = ${volRatio.toFixed(2)} (AI will evaluate)`
+  );
 
+}
+  
   // =====================================
   // BUY / SELL RATIO
   // =====================================
@@ -1002,36 +1002,41 @@ if (tracked) {
   "Skipped";
 
 if (
-  score >= 75 &&
+  score >= 65 &&
   !aiAnalyzedTokens.has(contract)
 ) {
 
   aiResult =
     await aiAnalyzeToken({
 
-      marketCap,
-      liquidity,
-      volume,
+  marketCap,
+  liquidity,
+  volume,
 
-      holders:
-        safety.holders,
+  volRatio,
 
-      topHolder:
-        safety.topHolder,
+  rugScore:
+    safety.rugScore,
 
-      top10:
-        safety.top10,
+  holders:
+    safety.holders,
 
-      mintEnabled:
-        safety.mintEnabled,
+  topHolder:
+    safety.topHolder,
 
-      freezeEnabled:
-        safety.freezeEnabled,
+  top10:
+    safety.top10,
 
-      lpLocked:
-        safety.lpLocked
-    });
+  mintEnabled:
+    safety.mintEnabled,
 
+  freezeEnabled:
+    safety.freezeEnabled,
+
+  lpLocked:
+    safety.lpLocked
+});
+  
   aiAnalyzedTokens.add(
     contract
   );
