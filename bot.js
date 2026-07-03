@@ -1147,6 +1147,7 @@ if (
   aiAnalyzedTokens.add(
     contract
   );
+  
 }
 
 // =====================================
@@ -1161,7 +1162,7 @@ if (score >= 75) {
     pair.priceUsd,
     marketCap,
     score,
-    signal.signal
+    result.signal
   );
 
 }
@@ -1171,41 +1172,6 @@ if (score >= 75) {
 // =====================================
 
 await sendAlert(`
-
-🚨 ${result.signal}
-
-🪙 ${tokenName}
-
-...
-
-🔗 ${tokenUrl || "No URL"}
-
-`);
-
-} catch (error) {
-
-  console.log(
-    "Process Token Error:",
-    error.message
-  );
-
-  console.log(
-    "Failed URL:",
-    error.config?.url
-  );
-
-  console.log(
-    "Status:",
-    error.response?.status
-  );
-
-}
-
-    // =====================================
-    // ALERT
-    // =====================================
-
-    await sendAlert(`
 
 🚨 ${result.signal}
 
@@ -1254,7 +1220,7 @@ ${safety.freezeEnabled ? "ON" : "OFF"}
 
 `);
 
-  } catch (error) {
+} catch (error) {
 
   console.log(
     "Process Token Error:",
@@ -1270,6 +1236,7 @@ ${safety.freezeEnabled ? "ON" : "OFF"}
     "Status:",
     error.response?.status
   );
+
 }
 
 }
