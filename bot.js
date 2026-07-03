@@ -1156,13 +1156,50 @@ if (
 if (score >= 75) {
 
   await paperBuy(
-  contract,
-  tokenName,
-  pair.priceUsd,
-  marketCap,
-  score,
-  signal.signal
-);
+    contract,
+    tokenName,
+    pair.priceUsd,
+    marketCap,
+    score,
+    signal.signal
+  );
+
+}
+
+// =====================================
+// ALERT
+// =====================================
+
+await sendAlert(`
+
+🚨 ${result.signal}
+
+🪙 ${tokenName}
+
+...
+
+🔗 ${tokenUrl || "No URL"}
+
+`);
+
+} catch (error) {
+
+  console.log(
+    "Process Token Error:",
+    error.message
+  );
+
+  console.log(
+    "Failed URL:",
+    error.config?.url
+  );
+
+  console.log(
+    "Status:",
+    error.response?.status
+  );
+
+}
 
     // =====================================
     // ALERT
