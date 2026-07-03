@@ -257,36 +257,67 @@ async function paperBuy(
   contract,
   tokenName,
   price,
-  marketCap
+  marketCap,
+  score,
+  signal
 ) {
-
+  
   if (
     paperTrades.has(contract)
   ) {
     return;
   }
 
-  paperTrades.set(
+ paperTrades.set(
+  contract,
+  {
     contract,
-    {
-      contract,
-      tokenName,
+    tokenName,
 
-      entryPrice:
-        Number(price),
+    entryPrice:
+      Number(price),
 
-      entryMarketCap:
-        marketCap,
+    currentPrice:
+      Number(price),
 
-      buyAmount:
-        PAPER_BUY_AMOUNT,
+    highestPrice:
+      Number(price),
 
-      boughtAt:
-        Date.now(),
+    entryMarketCap:
+      marketCap,
 
-      sold: false
-    }
-  );
+    currentMarketCap:
+      marketCap,
+
+    highestMarketCap:
+      marketCap,
+
+    buyAmount:
+      PAPER_BUY_AMOUNT,
+
+    // ADD THESE
+    entryScore:
+      score,
+
+    buySignal:
+      signal,
+
+    currentPnL: 0,
+
+    highestPnL: 0,
+
+    highestReachedAt: null,
+
+    highestMarketCapReachedAt: null,
+
+    boughtAt:
+      Date.now(),
+
+    sold: false,
+
+    sellReason: null
+  }
+);
 
   console.log(
     `PAPER BUY: ${tokenName}`
@@ -885,22 +916,98 @@ trackedTokens.set(
   }
 );
 
-    // =====================================
-    // MARKET DATA
-    // =====================================
+// =====================================
+// MARKET DATA
+// =====================================
 
-    const marketCap =
-      pair.marketCap || 0;
+const marketCap =
+  pair.marketCap || 0;
 
-    const liquidity =
-      pair.liquidity?.usd || 0;
+const liquidity =
+  pair.liquidity?.usd || 0;
 
-    const volume =
-      pair.volume?.h24 || 0;
+const volume =
+  pair.volume?.h24 || 0;
 
-    console.log(
-      `${tokenName} | MC=${marketCap} | LIQ=${liquidity}`
+console.log(
+  `${tokenName} | MC=${marketCap} | LIQ=${liquidity}`
+);
+
+// =====================================
+// UPDATE PAPER TRADE
+// =====================================
+
+const trade =
+  paperTrades.get(contract);
+
+if (
+  trade &&
+  !trade.sold
+) {
+
+  const currentPrice =
+  Number(pair.priceUsd || 0);
+
+trade.currentPrice =
+  currentPrice;
+
+  trade.currentMarketCap =
+    marketCap;
+
+  if (trade.entryPrice > 0) {
+
+  trade.currentPnL =
+    (
+      (
+        trade.currentPrice -
+        trade.entryPrice
+      ) /
+      trade.entryPrice
+    ) * 100;
+
+}
+
+ if (
+  trade.currentPrice >
+  trade.highestPrice
+) {
+
+  trade.highestPrice =
+    trade.currentPrice;
+
+  trade.highestReachedAt =
+    Date.now();
+
+}
+
+  if (
+  marketCap >
+  trade.highestMarketCap
+) {
+
+  trade.highestMarketCap =
+    marketCap;
+
+  trade.highestMarketCapReachedAt =
+    Date.now();
+
+}
+
+  if (
+    trade.currentPnL >
+    trade.highestPnL
+  ) {
+
+    trade.highestPnL =
+      trade.currentPnL;
+
+  }
+
+  console.log(
+    `📈 ${trade.tokenName} | Current: ${trade.currentPnL.toFixed(2)}% | Highest: ${trade.highestPnL.toFixed(2)}%`
   );
+
+}
 
     // =====================================
     // BASIC FILTERS
@@ -1049,12 +1156,13 @@ if (
 if (score >= 75) {
 
   await paperBuy(
-    contract,
-    tokenName,
-    pair.priceUsd,
-    marketCap
-  );
-}
+  contract,
+  tokenName,
+  pair.priceUsd,
+  marketCap,
+  score,
+  signal.signal
+);
 
     // =====================================
     // ALERT
