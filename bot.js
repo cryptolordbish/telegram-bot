@@ -1406,20 +1406,24 @@ function startPumpFun() {
   }
 );
 
-        // =====================================
-        // PROCESS IMMEDIATELY
-        // =====================================
+  // =====================================
+// WAIT 2 MINUTES THEN PROCESS
+// =====================================
 
-        await processToken(
+setTimeout(async () => {
 
-          contract,
+  await processToken(
 
-          token.name ||
-            contract,
+    contract,
 
-          `https://pump.fun/${contract}`
+    token.name ||
+      contract,
 
-        );
+    `https://pump.fun/${contract}`
+
+  );
+
+}, 1000 * 60 * 2);
 
       } catch (error) {
 
@@ -1464,49 +1468,31 @@ function startPumpFun() {
 
 function cleanupScanned() {
 
-  const now =
-    Date.now();
-
   for (
     const contract
     of scanned
   ) {
 
-    const tracked =
-      trackedTokens.get(
-        contract
-      );
+    // If we're no longer tracking
+    // the token, remove it from
+    // the scanned list too.
 
     if (
-      !tracked
+      !trackedTokens.has(contract)
     ) {
 
       scanned.delete(
         contract
       );
 
-      continue;
-    }
-
-    const ageMinutes =
-
-      (now -
-        tracked.pairCreatedAt)
-      / 1000 / 60;
-
-    if (
-      ageMinutes > 60
-    ) {
-
-      scanned.delete(
-        contract
+      console.log(
+        `Cleaned ${contract} from scanned memory`
       );
 
-      trackedTokens.delete(
-        contract
-      );
     }
+
   }
+
 }
 
 // =====================================
@@ -1526,5 +1512,5 @@ setInterval(
 
 setInterval(
   cleanupScanned,
-  1000 * 60 * 30
+  1000 * 60 * 5
 );
