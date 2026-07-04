@@ -5,12 +5,15 @@ console.log(
 async function reAnalyzeTokens() {
 
   console.log(
-  `Tracked Tokens: ${trackedTokens.size}`
-);
+    `Tracked Tokens: ${trackedTokens.size}`
+  );
 
   console.log(
     "Running Re-Analysis..."
   );
+
+  const now =
+    Date.now();
 
   for (
     const [
@@ -19,44 +22,79 @@ async function reAnalyzeTokens() {
     ] of trackedTokens
   ) {
 
-    const ageMinutes =
+    const age =
+      now -
+      token.migratedAt;
 
-      (Date.now() -
-        token.pairCreatedAt)
-      / 1000 / 60;
+    let interval;
 
+    // First 10 minutes
     if (
-      ageMinutes >
-      CONFIG.MAX_TOKEN_AGE_MINUTES
+      age <
+      10 * 60 * 1000
     ) {
+
+      interval =
+        30 * 1000;
+
+    }
+
+    // 10-30 minutes
+    else if (
+      age <
+      30 * 60 * 1000
+    ) {
+
+      interval =
+        60 * 1000;
+
+    }
+
+    // 30-60 minutes
+    else if (
+      age <
+      60 * 60 * 1000
+    ) {
+
+      interval =
+        3 * 60 * 1000;
+
+    }
+
+    // Older than 1 hour
+    else {
 
       trackedTokens.delete(
         contract
       );
- 
+
       console.log(
         `Stopped Tracking ${contract}`
       );
 
       continue;
+
     }
 
-    const minutesSinceCheck =
-
-      (Date.now() -
-        token.lastChecked)
-      / 1000 / 60;
-
     if (
-      minutesSinceCheck < 5
-    ) continue;
+
+      now -
+      token.lastChecked <
+
+      interval
+
+    ) {
+
+      continue;
+
+    }
 
     token.lastChecked =
-      Date.now();
+      now;
 
-    console.log(
-      `Rechecking ${contract}`
-    );
+   console.log(
+  `Rechecking ${contract} | Interval: ${interval / 1000}s`
+);
 
     await processToken(
       token.contract,
@@ -839,16 +877,29 @@ async function processToken(
       `Processing ${tokenName} ${contract}`
     );
 
+// =====================================
+// WAIT FOR DEXSCREENER PAIR
+// =====================================
+
+let pair = null;
+
+for (
+  let attempt = 1;
+  attempt <= 6;
+  attempt++
+) {
+
+  try {
+
     const pairResponse =
       await axios.get(
         `https://api.dexscreener.com/latest/dex/search?q=${contract}`
       );
 
     const pairs =
-      pairResponse.data
-        .pairs || [];
+      pairResponse.data?.pairs || [];
 
-    const pair =
+    pair =
       pairs.find(
         (p) =>
 
@@ -858,15 +909,48 @@ async function processToken(
           p.liquidity?.usd > 0
       );
 
-    if (!pair) {
+    if (pair) {
 
-     console.log(
-       `${contract}: No Pair Found`
+      console.log(
+        `${contract}: Pair Found`
+      );
+
+      break;
+
+    }
+
+    console.log(
+      `${contract}: Pair not ready (${attempt}/6)`
     );
 
-    return;
-      
+  } catch (error) {
+
+    console.log(
+      `${contract}: DexScreener request failed (${attempt}/6)`
+    );
+
   }
+
+  // Wait 5 seconds before retrying
+  await new Promise(
+    resolve =>
+      setTimeout(
+        resolve,
+        5000
+      )
+  );
+
+}
+
+if (!pair) {
+
+  console.log(
+    `${contract}: Pair not found after 30 seconds`
+  );
+
+  return;
+
+}
 
     // =====================================
     // TOKEN AGE
@@ -1244,6 +1328,7 @@ ${safety.freezeEnabled ? "ON" : "OFF"}
 // =====================================
 // PUMPFUN TRACKER
 // =====================================
+
 function startPumpFun() {
 
   const ws = new WebSocket(
@@ -1256,12 +1341,12 @@ function startPumpFun() {
       "Pump.fun Connected"
     );
 
-   ws.send(
-  JSON.stringify({
-    method:
-      "subscribeMigration"
-  })
-);
+    ws.send(
+      JSON.stringify({
+        method: "subscribeMigration"
+      })
+    );
+
   });
 
   ws.on(
@@ -1270,13 +1355,13 @@ function startPumpFun() {
 
       try {
 
-       const token =
-  JSON.parse(data);
+        const token =
+          JSON.parse(data);
 
-console.log(
-  "Migration Event:",
-  token
-);
+        console.log(
+          "Migration Event:",
+          token
+        );
 
         if (!token.mint)
           return;
@@ -1285,60 +1370,55 @@ console.log(
           token.mint;
 
         if (
-          scanned.has(
-            contract
-          )
-
+          scanned.has(contract)
         ) {
           return;
         }
 
-        scanned.add(
-          contract
+        scanned.add(contract);
+
+        console.log(
+          `Graduated Token: ${contract}`
         );
 
-     console.log(
-       `Graduated: ${token.name || "Unknown"}`
-    );
+       trackedTokens.set(
+  contract,
+  {
+    contract,
 
-        trackedTokens.set(
+    tokenName:
+      token.name || contract,
+
+    tokenUrl:
+      `https://pump.fun/${contract}`,
+
+    pairCreatedAt:
+      Date.now(),
+
+    migratedAt:
+      Date.now(),
+
+    lastChecked:
+      0,
+
+    lastSignal:
+      null
+  }
+);
+
+        // =====================================
+        // PROCESS IMMEDIATELY
+        // =====================================
+
+        await processToken(
+
           contract,
-          {
+
+          token.name ||
             contract,
-            tokenName:
-              token.name ||
-              "Unknown",
 
-            tokenUrl:
-              `https://pump.fun/${contract}`,
+          `https://pump.fun/${contract}`
 
-            pairCreatedAt:
-              Date.now(),
-
-            lastChecked:
-              Date.now(),
-
-            lastSignal:
-              null
-          }
-        );
-
-        // Wait 2 minutes
-        setTimeout(
-          async () => {
-
-            await processToken(
-
-              contract,
-
-              token.name ||
-                "Unknown",
-
-              `https://pump.fun/${contract}`
-            );
-
-          },
-           1000 * 60 * 2 // 2 minute 
         );
 
       } catch (error) {
@@ -1347,8 +1427,11 @@ console.log(
           "Pumpfun Error:",
           error.message
         );
+
       }
+
     }
+
   );
 
   ws.on("close", () => {
@@ -1359,8 +1442,9 @@ console.log(
 
     setTimeout(
       startPumpFun,
-     5000
+      5000
     );
+
   });
 
   ws.on("error", (error) => {
@@ -1369,7 +1453,9 @@ console.log(
       "Pumpfun WS Error:",
       error.message
     );
+
   });
+
 }
 
 // =====================================
@@ -1422,6 +1508,7 @@ function cleanupScanned() {
     }
   }
 }
+
 // =====================================
 // START BOT
 // =====================================
@@ -1434,7 +1521,7 @@ startPumpFun();
 
 setInterval(
   reAnalyzeTokens,
-  1000 * 60 * 5
+  1000 * 15
 );
 
 setInterval(
