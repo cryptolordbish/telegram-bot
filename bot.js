@@ -1113,25 +1113,37 @@ trade.currentPrice =
       return;
     }
 
-    // =====================================
-    // SAFETY CHECKS
-    // =====================================
+ // =====================================
+// SAFETY CHECKS
+// =====================================
 
-    const safety =
-      await analyzeSafety(
-        contract,
-        pair,
-        pair
-      );
+const safety =
+  await analyzeSafety(
+    contract,
+    pair,
+    pair
+  );
 
-    if (!safety.safe) {
+if (!safety.safe) {
 
   console.log(
     `Rejected ${contract}: ${safety.reason}`
   );
 
+  // Update lastSignal to track rejection
+  // but keep token for re-analysis
+  const tracked =
+    trackedTokens.get(contract);
+
+  if (tracked) {
+    tracked.lastSignal =
+      `❌ ${safety.reason}`;
+  }
+
   return;
 }
+}
+  
     // =====================================
     // SCORE
     // =====================================
