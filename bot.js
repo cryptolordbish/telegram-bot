@@ -1297,9 +1297,9 @@ console.log(
           contract
         );
 
-        console.log(
-          `New Launch: ${token.name || "Unknown"}`
-        );
+     console.log(
+       `Graduated: ${token.name || "Unknown"}`
+    );
 
         trackedTokens.set(
           contract,
