@@ -1256,12 +1256,12 @@ function startPumpFun() {
       "Pump.fun Connected"
     );
 
-    ws.send(
-      JSON.stringify({
-        method:
-          "subscribeNewToken"
-      })
-    );
+   ws.send(
+  JSON.stringify({
+    method:
+      "subscribeMigration"
+  })
+);
   });
 
   ws.on(
@@ -1270,8 +1270,13 @@ function startPumpFun() {
 
       try {
 
-        const token =
-          JSON.parse(data);
+       const token =
+  JSON.parse(data);
+
+console.log(
+  "Migration Event:",
+  token
+);
 
         if (!token.mint)
           return;
@@ -1283,6 +1288,7 @@ function startPumpFun() {
           scanned.has(
             contract
           )
+
         ) {
           return;
         }
