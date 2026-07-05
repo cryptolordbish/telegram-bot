@@ -45,23 +45,6 @@ if (
 
 }
 
-    const age =
-      now -
-      token.migratedAt;
-
-    let interval;
-
-    // First 10 minutes
-    if (
-      age <
-      10 * 60 * 1000
-    ) {
-
-      interval =
-        30 * 1000;
-
-    }
-
     // 10-30 minutes
     else if (
       age <
