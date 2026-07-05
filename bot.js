@@ -1216,7 +1216,7 @@ if (tracked) {
   "Skipped";
 
 if (
-  score >= 65 &&
+  score >= 50 &&
   !aiAnalyzedTokens.has(contract)
 ) {
 
