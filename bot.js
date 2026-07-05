@@ -22,6 +22,29 @@ async function reAnalyzeTokens() {
     ] of trackedTokens
   ) {
 
+    console.log({
+  contract,
+  migratedAt: token.migratedAt,
+  pairCreatedAt: token.pairCreatedAt
+});
+
+const age =
+  now -
+  token.migratedAt;
+
+let interval;
+
+// First 10 minutes
+if (
+  age <
+  10 * 60 * 1000
+) {
+
+  interval =
+    30 * 1000;
+
+}
+
     const age =
       now -
       token.migratedAt;
@@ -985,14 +1008,20 @@ if (!pair) {
 trackedTokens.set(
   contract,
   {
+    ...existing,
+
     contract,
     tokenName,
     tokenUrl,
+
     pairCreatedAt:
       pair.pairCreatedAt,
 
+    migratedAt:
+      existing?.migratedAt,
+
     lastChecked:
-      existing?.lastChecked ||
+      existing?.lastChecked ??
       Date.now(),
 
     lastSignal:
