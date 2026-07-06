@@ -552,7 +552,7 @@ function calculateScore(data) {
     score -= 40;
   }
 
-  // =====================================
+   // =====================================
   // LP UNLOCKED
   // =====================================
 
@@ -561,12 +561,29 @@ function calculateScore(data) {
   ) {
 
     score -= 60;
+
+  }
+
+  // =====================================
+  // RUG SCORE (Monitor Only)
+  // =====================================
+
+  if (
+    data.rugScore &&
+    data.rugScore < CONFIG.MIN_RUG_SCORE
+  ) {
+
+    console.log(
+      `Low Rug Score = ${data.rugScore} (AI will evaluate)`
+    );
+
   }
 
   return Math.max(
     0,
     Math.min(100, score)
   );
+
 }
 
 // =====================================
@@ -1175,6 +1192,35 @@ if (!safety.safe) {
         marketCap,
         liquidity,
         volume,
+
+        const score =
+  calculateScore({
+
+    marketCap,
+    liquidity,
+    volume,
+
+    rugScore:          
+      safety.rugScore,  
+
+    holders:
+      safety.holders,
+
+    topHolder:
+      safety.topHolder,
+
+    top10:
+      safety.top10,
+
+    mintEnabled:
+      safety.mintEnabled,
+
+    freezeEnabled:
+      safety.freezeEnabled,
+
+    lpLocked:
+      safety.lpLocked
+  });
 
         holders:
           safety.holders,
