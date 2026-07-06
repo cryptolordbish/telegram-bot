@@ -219,6 +219,9 @@ Data:
 - Holders: ${token.holders}
 - Top Holder: ${token.topHolder}%
 - Top 10 Holders: ${token.top10}%
+- Rug Score: ${token.rugScore}
+- Rug Risk: ${token.rugRisk}
+- Has Socials: ${token.hasSocials}
 - LP Locked: ${token.lpLocked}
 - Mint Enabled: ${token.mintEnabled}
 - Freeze Enabled: ${token.freezeEnabled}
@@ -688,15 +691,16 @@ async function analyzeSafety(
   rugScore
 );
   
-if (
+const rugRisk =
   rugScore <
-  CONFIG.MIN_RUG_SCORE
-) {
+  CONFIG.MIN_RUG_SCORE;
 
-  return {
-    safe: false,
-    reason: "Low Rug Score"
-  };
+if (rugRisk) {
+
+  console.log(
+    `${contract}: Low Rug Score (${rugScore}) - AI will evaluate`
+  );
+
 }
 
   // =====================================
@@ -841,32 +845,36 @@ if (
 
   if (!hasSocials) {
 
-    return {
-      safe: false,
-      reason: "No Socials"
-    };
-  }
+  console.log(
+    `${contract}: No Socials - AI will evaluate`
+  );
 
-  return {
-
-    safe: true,
-
-    rugScore,
-
-    holders,
-
-    topHolder,
-
-    top10,
-
-    mintEnabled,
-
-    freezeEnabled,
-
-    lpLocked: !lpUnlocked
-  };
 }
 
+ return {
+
+  safe: true,
+
+  rugScore,
+
+  rugRisk,
+
+  holders,
+
+  topHolder,
+
+  top10,
+
+  mintEnabled,
+
+  freezeEnabled,
+
+  lpLocked: !lpUnlocked,
+
+  hasSocials
+
+};
+  
 // =====================================
 // PROCESS TOKEN
 // =====================================
@@ -1212,51 +1220,57 @@ if (tracked) {
     // AI
     // =====================================
 
-   let aiResult =
+  let aiResult =
   "Skipped";
 
 if (
-  score >= 50 &&
-  !aiAnalyzedTokens.has(contract)
+  score >= 50
 ) {
+
+  console.log(
+    `${contract}: Running AI Analysis`
+  );
 
   aiResult =
     await aiAnalyzeToken({
 
-  marketCap,
-  liquidity,
-  volume,
+      marketCap,
+      liquidity,
+      volume,
 
-  volRatio,
+      volRatio,
 
-  rugScore:
-    safety.rugScore,
+      rugScore:
+        safety.rugScore,
 
-  holders:
-    safety.holders,
+      rugRisk:
+        safety.rugRisk,
 
-  topHolder:
-    safety.topHolder,
+      hasSocials:
+        safety.hasSocials,
 
-  top10:
-    safety.top10,
+      holders:
+        safety.holders,
 
-  mintEnabled:
-    safety.mintEnabled,
+      topHolder:
+        safety.topHolder,
 
-  freezeEnabled:
-    safety.freezeEnabled,
+      top10:
+        safety.top10,
 
-  lpLocked:
-    safety.lpLocked
-});
-  
-  aiAnalyzedTokens.add(
-    contract
-  );
-  
+      mintEnabled:
+        safety.mintEnabled,
+
+      freezeEnabled:
+        safety.freezeEnabled,
+
+      lpLocked:
+        safety.lpLocked
+
+    });
+
 }
-
+    
 // =====================================
 // PAPER BUY
 // =====================================
