@@ -1193,13 +1193,6 @@ if (!safety.safe) {
         liquidity,
         volume,
 
-        const score =
-  calculateScore({
-
-    marketCap,
-    liquidity,
-    volume,
-
     rugScore:          
       safety.rugScore,  
 
@@ -1221,25 +1214,6 @@ if (!safety.safe) {
     lpLocked:
       safety.lpLocked
   });
-
-        holders:
-          safety.holders,
-
-        topHolder:
-          safety.topHolder,
-
-        top10:
-          safety.top10,
-
-        mintEnabled:
-          safety.mintEnabled,
-
-        freezeEnabled:
-          safety.freezeEnabled,
-
-        lpLocked:
-          safety.lpLocked
-      });
 
     const result =
       getSignal(score);
