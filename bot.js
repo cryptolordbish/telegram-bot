@@ -1369,7 +1369,6 @@ ${safety.freezeEnabled ? "ON" : "OFF"}
 🔗 ${tokenUrl || "No URL"}
     `);
   }
-}
   
 // =====================================
 // PUMPFUN TRACKER
