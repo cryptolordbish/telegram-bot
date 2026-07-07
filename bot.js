@@ -1182,7 +1182,7 @@ if (!safety.safe) {
   return;
 }
   
-    // =====================================
+     // =====================================
     // SCORE
     // =====================================
 
@@ -1193,42 +1193,47 @@ if (!safety.safe) {
         liquidity,
         volume,
 
-    rugScore:          
-      safety.rugScore,  
+        rugScore:          
+          safety.rugScore,  
 
-    holders:
-      safety.holders,
+        holders:
+          safety.holders,
 
-    topHolder:
-      safety.topHolder,
+        topHolder:
+          safety.topHolder,
 
-    top10:
-      safety.top10,
+        top10:
+          safety.top10,
 
-    mintEnabled:
-      safety.mintEnabled,
+        mintEnabled:
+          safety.mintEnabled,
 
-    freezeEnabled:
-      safety.freezeEnabled,
+        freezeEnabled:
+          safety.freezeEnabled,
 
-    lpLocked:
-      safety.lpLocked
-  });
+        lpLocked:
+          safety.lpLocked
+      });
 
     const result =
-  getSignal(score);
+      getSignal(score);
 
-const tracked =
-  trackedTokens.get(contract);
+    console.log(
+      `${contract}: Score=${score}, Signal=${result.signal}, Allowed=${result.allowed}`
+    );
 
-if (tracked) {
+    const tracked =
+      trackedTokens.get(contract);
 
-  tracked.lastSignal =
-    result.signal;
-}
+    if (tracked) {
 
-if (!result.allowed)
-  return;
+      tracked.lastSignal =
+        result.signal;
+    }
+
+    if (!result.allowed)
+      return;
+
 
     // =====================================
     // AI
