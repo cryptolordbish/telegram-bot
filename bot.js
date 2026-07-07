@@ -1302,11 +1302,26 @@ if (score >= 75) {
 
 }
 
-// =====================================
-// ALERT
-// =====================================
+    } catch (error) {
+      console.log(
+        "Process Token Error:",
+        error.message
+      );
+      console.log(
+        "Failed URL:",
+        error.config?.url
+      );
+      console.log(
+        "Status:",
+        error.response?.status
+      );
+    }
 
-await sendAlert(`
+    // =====================================
+    // ALERT
+    // =====================================
+
+    await sendAlert(`
 
 🚨 ${result.signal}
 
@@ -1352,28 +1367,8 @@ ${safety.mintEnabled ? "ON" : "OFF"}
 ${safety.freezeEnabled ? "ON" : "OFF"}
 
 🔗 ${tokenUrl || "No URL"}
-
-`);
-
-} catch (error) {
-
-  console.log(
-    "Process Token Error:",
-    error.message
-  );
-
-  console.log(
-    "Failed URL:",
-    error.config?.url
-  );
-
-  console.log(
-    "Status:",
-    error.response?.status
-  );
-
-}
-
+    `);
+  }
 }
   
 // =====================================
