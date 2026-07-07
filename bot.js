@@ -1216,18 +1216,10 @@ if (!safety.safe) {
   });
 
     const result =
-      getSignal(score);
-      const tracked =
+  getSignal(score);
+
+const tracked =
   trackedTokens.get(contract);
-
-if (
-  tracked &&
-  tracked.lastSignal ===
-  result.signal
-) {
-
-  return;
-}
 
 if (tracked) {
 
@@ -1235,8 +1227,8 @@ if (tracked) {
     result.signal;
 }
 
-    if (!result.allowed)
-      return;
+if (!result.allowed)
+  return;
 
     // =====================================
     // AI
