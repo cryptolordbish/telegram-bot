@@ -904,6 +904,17 @@ async function processToken(
   tokenUrl
 ) {
 
+  // DECLARE VARIABLES OUTSIDE TRY BLOCK
+  let pair = null;
+  let marketCap = 0;
+  let liquidity = 0;
+  let volume = 0;
+  let volRatio = 0;
+  let safety = null;
+  let score = 0;
+  let result = null;
+  let aiResult = "Skipped";
+
   try {
 
     console.log(
@@ -913,8 +924,6 @@ async function processToken(
 // =====================================
 // WAIT FOR DEXSCREENER PAIR
 // =====================================
-
-let pair = null;
 
 for (
   let attempt = 1;
@@ -1043,13 +1052,13 @@ trackedTokens.set(
 // MARKET DATA
 // =====================================
 
-const marketCap =
+marketCap =
   pair.marketCap || 0;
 
-const liquidity =
+liquidity =
   pair.liquidity?.usd || 0;
 
-const volume =
+volume =
   pair.volume?.h24 || 0;
 
 console.log(
@@ -1156,7 +1165,7 @@ trade.currentPrice =
 // SAFETY CHECKS
 // =====================================
 
-const safety =
+safety =
   await analyzeSafety(
     contract,
     pair,
@@ -1186,7 +1195,7 @@ if (!safety.safe) {
     // SCORE
     // =====================================
 
-    const score =
+    score =
       calculateScore({
 
         marketCap,
@@ -1215,7 +1224,7 @@ if (!safety.safe) {
           safety.lpLocked
       });
 
-    const result =
+    result =
       getSignal(score);
 
     console.log(
@@ -1234,13 +1243,9 @@ if (!safety.safe) {
     if (!result.allowed)
       return;
 
-
     // =====================================
     // AI
     // =====================================
-
-  let aiResult =
-  "Skipped";
 
 if (
   score >= 50
@@ -1307,25 +1312,27 @@ if (score >= 75) {
 
 }
 
-    } catch (error) {
-      console.log(
-        "Process Token Error:",
-        error.message
-      );
-      console.log(
-        "Failed URL:",
-        error.config?.url
-      );
-      console.log(
-        "Status:",
-        error.response?.status
-      );
-    }
+  } catch (error) {
+    console.log(
+      "Process Token Error:",
+      error.message
+    );
+    console.log(
+      "Failed URL:",
+      error.config?.url
+    );
+    console.log(
+      "Status:",
+      error.response?.status
+    );
+    return;
+  }
 
-    // =====================================
-    // ALERT
-    // =====================================
+  // =====================================
+  // ALERT (OUTSIDE TRY-CATCH)
+  // =====================================
 
+  if (result && result.allowed) {
     await sendAlert(`
 
 🚨 ${result.signal}
@@ -1374,6 +1381,7 @@ ${safety.freezeEnabled ? "ON" : "OFF"}
 🔗 ${tokenUrl || "No URL"}
     `);
   }
+}
   
 // =====================================
 // PUMPFUN TRACKER
@@ -1564,3 +1572,4 @@ setInterval(
   cleanupScanned,
   1000 * 60 * 5
 );
+
