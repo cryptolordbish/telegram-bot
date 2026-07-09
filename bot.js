@@ -153,6 +153,9 @@ const paperTrades = new Map();
 
 const PAPER_BUY_AMOUNT = 40;
 
+let lastReportTime = Date.now();
+let buysCountSinceReport = 0;
+
 // =====================================
 // CONFIG
 // =====================================
@@ -342,7 +345,6 @@ async function paperBuy(
     buyAmount:
       PAPER_BUY_AMOUNT,
 
-    // ADD THESE
     entryScore:
       score,
 
@@ -366,9 +368,110 @@ async function paperBuy(
   }
 );
 
+  buysCountSinceReport++;
+
   console.log(
-    `PAPER BUY: ${tokenName}`
+    `PAPER BUY: ${tokenName} (${buysCountSinceReport}/10)`
   );
+
+  // Check if we should send report
+  checkAndSendPaperTradeReport();
+}
+
+// =====================================
+// PAPER TRADE REPORT
+// =====================================
+
+async function checkAndSendPaperTradeReport() {
+
+  const now = Date.now();
+  const timeSinceLastReport = now - lastReportTime;
+  const fourHoursMs = 4 * 60 * 60 * 1000;
+
+  // Send report if 10 buys OR 4 hours passed
+  if (
+    buysCountSinceReport >= 10 ||
+    timeSinceLastReport >= fourHoursMs
+  ) {
+
+    await sendPaperTradeReport();
+
+    lastReportTime = now;
+    buysCountSinceReport = 0;
+  }
+}
+
+async function sendPaperTradeReport() {
+
+  if (paperTrades.size === 0) {
+    return;
+  }
+
+  let report = `
+📊 PAPER TRADING REPORT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Total Trades: ${paperTrades.size}
+
+`;
+
+  let totalPnL = 0;
+  let winCount = 0;
+  let lossCount = 0;
+
+  for (
+    const [contract, trade]
+    of paperTrades
+  ) {
+
+    const pnlPercent = trade.highestPnL;
+    const mcGain = (
+      (
+        trade.highestMarketCap -
+        trade.entryMarketCap
+      ) /
+      trade.entryMarketCap
+    ) * 100;
+
+    totalPnL += pnlPercent;
+
+    if (pnlPercent > 0) {
+      winCount++;
+    } else {
+      lossCount++;
+    }
+
+    const emoji = pnlPercent > 0 ? "✅" : "❌";
+
+    report += `
+${emoji} ${trade.tokenName}
+Entry Price: $${trade.entryPrice.toFixed(8)}
+Highest Price: $${trade.highestPrice.toFixed(8)}
+Price Gain: ${pnlPercent.toFixed(2)}%
+
+Entry MC: $${trade.entryMarketCap.toLocaleString()}
+Highest MC: $${trade.highestMarketCap.toLocaleString()}
+MC Gain: ${mcGain.toFixed(2)}%
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+`;
+  }
+
+  const avgPnL = totalPnL / paperTrades.size;
+  const winRate = (
+    (winCount / paperTrades.size) * 100
+  ).toFixed(1);
+
+  report += `
+📈 SUMMARY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Total PnL: ${totalPnL.toFixed(2)}%
+Average PnL: ${avgPnL.toFixed(2)}%
+Win Rate: ${winRate}% (${winCount}W / ${lossCount}L)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  `;
+
+  await sendAlert(report);
 }
 
 // =====================================
@@ -1571,5 +1674,14 @@ setInterval(
 setInterval(
   cleanupScanned,
   1000 * 60 * 5
+);
+
+// =====================================
+// PAPER TRADE REPORT TIMER
+// =====================================
+
+setInterval(
+  checkAndSendPaperTradeReport,
+  1000 * 60 * 5  // Check every 5 minutes
 );
 
