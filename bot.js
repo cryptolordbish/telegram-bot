@@ -34,27 +34,16 @@ const age =
 
 let interval;
 
-// First 10 minutes
+// First 30 minutes
 if (
   age <
-  10 * 60 * 1000
+  30 * 60 * 1000
 ) {
 
   interval =
     30 * 1000;
 
 }
-
-    // 10-30 minutes
-    else if (
-      age <
-      30 * 60 * 1000
-    ) {
-
-      interval =
-        60 * 1000;
-
-    }
 
     // 30-60 minutes
     else if (
@@ -63,19 +52,53 @@ if (
     ) {
 
       interval =
+        60 * 1000;
+
+    }
+
+    // 1-2 hours
+    else if (
+      age <
+      2 * 60 * 60 * 1000
+    ) {
+
+      interval =
         3 * 60 * 1000;
 
     }
 
-    // Older than 1 hour
+    // 2-4 hours
+    else if (
+      age <
+      4 * 60 * 60 * 1000
+    ) {
+
+      interval =
+        5 * 60 * 1000;
+
+    }
+
+    // After 4 hours - SEND RESULTS
     else {
+
+      const trade =
+        paperTrades.get(contract);
+
+      if (trade && !trade.sold) {
+
+        trade.sold = true;
+        trade.sellReason = "4 Hour Timeout";
+
+        await sendResults(trade);
+
+      }
 
       trackedTokens.delete(
         contract
       );
 
       console.log(
-        `Stopped Tracking ${contract}`
+        `Stopped Tracking ${contract} - 4 Hour Limit Reached`
       );
 
       continue;
@@ -181,6 +204,11 @@ const CONFIG = {
   MAX_SELL_TAX: 15,
 
   MAX_VOL_LIQ_RATIO: 20,
+
+  // TRADING CONFIG
+
+  MAX_TRADES: 10,
+  TRADE_DURATION_HOURS: 4
 };
 
 // =====================================
@@ -297,6 +325,67 @@ async function sendAlert(message) {
 }
 
 // =====================================
+// SEND RESULTS (4 HOUR REPORT)
+// =====================================
+
+async function sendResults(trade) {
+
+  const duration =
+    (Date.now() - trade.boughtAt) /
+    1000 / 60;
+
+  const message = `
+
+📊 TRADE RESULTS
+
+🪙 ${trade.tokenName}
+
+📄 Contract:
+${trade.contract}
+
+⏱️ Duration:
+${duration.toFixed(0)} minutes
+
+💰 Entry Price:
+$${trade.entryPrice.toFixed(8)}
+
+📈 Current Price:
+$${trade.currentPrice.toFixed(8)}
+
+🎯 Highest Price:
+$${trade.highestPrice.toFixed(8)}
+
+📊 Entry Market Cap:
+$${trade.entryMarketCap.toLocaleString()}
+
+📊 Highest Market Cap:
+$${trade.highestMarketCap.toLocaleString()}
+
+💹 Current PnL:
+${trade.currentPnL.toFixed(2)}%
+
+🚀 Highest PnL:
+${trade.highestPnL.toFixed(2)}%
+
+🎯 Entry Score:
+${trade.entryScore}/100
+
+📌 Entry Signal:
+${trade.buySignal}
+
+🛑 Exit Reason:
+${trade.sellReason}
+
+  `;
+
+  await sendAlert(message);
+
+  console.log(
+    `Results sent for ${trade.tokenName}`
+  );
+}
+
+// =====================================
 // PAPER BUY
 // =====================================
 
@@ -312,6 +401,19 @@ async function paperBuy(
   if (
     paperTrades.has(contract)
   ) {
+    return;
+  }
+
+  // Check if we already have 10 trades
+  if (
+    paperTrades.size >=
+    CONFIG.MAX_TRADES
+  ) {
+
+    console.log(
+      `Max trades (${CONFIG.MAX_TRADES}) reached. Skipping ${tokenName}`
+    );
+
     return;
   }
 
@@ -342,7 +444,6 @@ async function paperBuy(
     buyAmount:
       PAPER_BUY_AMOUNT,
 
-    // ADD THESE
     entryScore:
       score,
 
@@ -367,8 +468,33 @@ async function paperBuy(
 );
 
   console.log(
-    `PAPER BUY: ${tokenName}`
+    `PAPER BUY: ${tokenName} (${paperTrades.size}/${CONFIG.MAX_TRADES})`
   );
+
+  await sendAlert(`
+
+🟢 BUY SIGNAL
+
+🪙 ${tokenName}
+
+📄 Contract:
+${contract}
+
+💰 Entry Price:
+$${price}
+
+📊 Market Cap:
+$${marketCap.toLocaleString()}
+
+📈 Score:
+${score}/100
+
+🎯 Signal:
+${signal}
+
+⏱️ Will track for 4 hours...
+
+  `);
 }
 
 // =====================================
