@@ -149,7 +149,7 @@ else {
         trade.entryScore,
 
       buySignal:
-        trade.buySignal
+        trade.buySignal,
 
       sellReason:
     trade.sellReason
