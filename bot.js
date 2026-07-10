@@ -34,53 +34,141 @@ const age =
 
 let interval;
 
-// First 10 minutes
+// =====================================
+// 0 - 10 Minutes
+// =====================================
+
 if (
   age <
   10 * 60 * 1000
 ) {
 
   interval =
-    30 * 1000;
+    60 * 1000; // 1 minute
 
 }
 
-    // 10-30 minutes
-    else if (
-      age <
-      30 * 60 * 1000
-    ) {
+// =====================================
+// 10 - 30 Minutes
+// =====================================
 
-      interval =
-        60 * 1000;
+else if (
+  age <
+  30 * 60 * 1000
+) {
 
-    }
+  interval =
+    3 * 60 * 1000;
 
-    // 30-60 minutes
-    else if (
-      age <
-      60 * 60 * 1000
-    ) {
+}
 
-      interval =
-        3 * 60 * 1000;
+// =====================================
+// 30 - 60 Minutes
+// =====================================
 
-    }
+else if (
+  age <
+  60 * 60 * 1000
+) {
 
-    // Older than 1 hour
-    else {
+  interval =
+   5 * 60 * 1000;
 
-      trackedTokens.delete(
-        contract
-      );
+}
 
-      console.log(
-        `Stopped Tracking ${contract}`
-      );
+// =====================================
+// 1 - 4 Hours
+// =====================================
 
-      continue;
+else if (
+  age <
+  4 * 60 * 60 * 1000
+) {
 
-    }
+  interval =
+    60 * 60 * 1000;
+
+}
+
+// =====================================
+// Older than 4 Hours
+// =====================================
+
+else {
+
+  console.log(
+    `Finished Tracking ${contract}`
+  );
+
+  const trade =
+    paperTrades.get(contract);
+
+  if (trade) {
+
+    completedTrades.push({
+
+      contract,
+
+      tokenName:
+        trade.tokenName,
+
+      entryPrice:
+        trade.entryPrice,
+
+      highestPrice:
+        trade.highestPrice,
+
+      currentPrice:
+        trade.currentPrice,
+
+      entryMarketCap:
+        trade.entryMarketCap,
+
+      highestMarketCap:
+        trade.highestMarketCap,
+
+      currentMarketCap:
+        trade.currentMarketCap,
+
+      highestPnL:
+        trade.highestPnL,
+
+      currentPnL:
+        trade.currentPnL,
+
+      boughtAt:
+        trade.boughtAt,
+
+      highestReachedAt:
+        trade.highestReachedAt,
+
+      highestMarketCapReachedAt:
+  trade.highestMarketCapReachedAt,
+
+      entryScore:
+        trade.entryScore,
+
+      buySignal:
+        trade.buySignal
+
+      sellReason:
+    trade.sellReason
+
+    });
+
+    console.log(
+      `Completed Trades: ${completedTrades.length}`
+    );
+
+    paperTrades.delete(contract);
+
+  }
+
+  trackedTokens.delete(contract);
+
+  continue;
+
+}
 
     if (
 
@@ -99,7 +187,7 @@ if (
       now;
 
    console.log(
-  `Rechecking ${contract} | Interval: ${interval / 1000}s`
+  `Rechecking ${contract} | Every ${interval / 60000} minute(s)`
 );
 
     await processToken(
@@ -143,15 +231,23 @@ const CHAT_ID =
 // =====================================
 
 const scanned = new Set();
+
 const trackedTokens = new Map();
 
 const aiAnalyzedTokens = new Set();
 
+// =====================================
 // PAPER TRADING
+// =====================================
 
 const paperTrades = new Map();
 
-const PAPER_BUY_AMOUNT = 40;
+// Completed trades waiting
+// to be sent to Telegram
+
+const completedTrades = [];
+
+const PAPER_BUY_AMOUNT = 10;
 
 // =====================================
 // CONFIG
