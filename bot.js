@@ -8,10 +8,6 @@ async function reAnalyzeTokens() {
     `Tracked Tokens: ${trackedTokens.size}`
   );
 
-  console.log(
-    "Running Re-Analysis..."
-  );
-
   const now =
     Date.now();
 
@@ -21,12 +17,6 @@ async function reAnalyzeTokens() {
       token
     ] of trackedTokens
   ) {
-
-    console.log({
-  contract,
-  migratedAt: token.migratedAt,
-  pairCreatedAt: token.pairCreatedAt
-});
 
 const age =
   now -
@@ -132,7 +122,7 @@ else {
 
       highestPnL:
         trade.highestPnL,
-
+      
       currentPnL:
         trade.currentPnL,
 
@@ -157,10 +147,19 @@ else {
     });
 
     console.log(
-      `Completed Trades: ${completedTrades.length}`
-    );
+  `Completed Trades: ${completedTrades.length}`
+);
 
-    paperTrades.delete(contract);
+if (
+  completedTrades.length >= 10
+) {
+
+  await sendPaperTradeReport();
+
+}
+
+paperTrades.delete(contract);
+    
 
   }
 
@@ -465,6 +464,184 @@ async function paperBuy(
   console.log(
     `PAPER BUY: ${tokenName}`
   );
+}
+
+// =====================================
+// PAPER TRADE REPORT
+// =====================================
+
+async function sendPaperTradeReport() {
+
+  if (completedTrades.length < 10)
+    return;
+
+  const trades =
+    completedTrades.splice(0, 10);
+
+  let message =
+`📊 PAPER TRADE REPORT (1-10)
+
+`;
+
+  let totalGain = 0;
+
+  let wins = 0;
+
+  let best = -999999;
+
+  let worst = 999999;
+
+  for (
+
+    let i = 0;
+
+    i < trades.length;
+
+    i++
+
+  ) {
+
+    const t =
+      trades[i];
+
+    totalGain +=
+      t.highestPnL;
+
+    if (
+      t.highestPnL > 0
+    ) {
+
+      wins++;
+
+    }
+
+    if (
+      t.highestPnL > best
+    ) {
+
+      best =
+        t.highestPnL;
+
+    }
+
+    if (
+      t.highestPnL < worst
+    ) {
+
+      worst =
+        t.highestPnL;
+
+    }
+
+    const minutesToPeak =
+
+      t.highestReachedAt ?
+
+      Math.round(
+
+        (
+
+          t.highestReachedAt -
+
+          t.boughtAt
+
+        ) /
+
+        60000
+
+      )
+
+      : "-";
+
+    message +=
+
+`${i + 1}️⃣ ${t.tokenName}
+
+Score: ${t.entryScore}
+
+Signal: ${t.buySignal}
+
+Entry MC:
+$${Math.round(t.entryMarketCap).toLocaleString()}
+
+Highest MC:
+$${Math.round(t.highestMarketCap).toLocaleString()}
+
+Gain:
+${t.highestPnL.toFixed(2)}%
+
+Entry Price:
+${t.entryPrice}
+
+Highest Price:
+${t.highestPrice}
+
+Time to Peak:
+${minutesToPeak} min
+
+----------------------
+
+`;
+
+  }
+
+  const average =
+
+    totalGain /
+
+    trades.length;
+
+  const winRate =
+
+    (
+
+      wins /
+
+      trades.length
+
+    ) * 100;
+
+  message +=
+
+`📈 SUMMARY
+
+Trades:
+${trades.length}
+
+Average Gain:
+${average.toFixed(2)}%
+
+Best Performer:
+${best.toFixed(2)}%
+
+Worst Performer:
+${worst.toFixed(2)}%
+
+Win Rate:
+${winRate.toFixed(0)}%
+`;
+
+  try {
+
+  await sendAlert(message);
+
+  console.log(
+    "📊 Paper Trade Report Sent"
+  );
+
+  console.log(
+  `Paper report sent for ${trades.length} completed trades`
+);
+
+} catch (error) {
+
+  console.log(
+    "Paper Trade Report Error:",
+    error.message
+  );
+
+}
+
 }
 
 // =====================================
