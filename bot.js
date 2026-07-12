@@ -1863,9 +1863,6 @@ async function startBot() {
 
 startBot().catch(error => {
 
-  console.log(
-    "Startup Error:",
-    error.message
-  );
+  console.error(error);
 
 });
