@@ -209,6 +209,15 @@ const axios = require("axios");
 const TelegramBot = require("node-telegram-bot-api");
 const WebSocket = require("ws");
 
+// =====================================
+// DATABASE
+// =====================================
+
+const {
+  pool,
+  initializeDatabase
+} = require("./database");
+
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
@@ -1830,18 +1839,33 @@ function cleanupScanned() {
 // START BOT
 // =====================================
 
-console.log(
-  "🚀 SAFE AI ALPHA BOT STARTED"
-);
+async function startBot() {
 
-startPumpFun();
+  console.log(
+    "🚀 SAFE AI ALPHA BOT STARTED"
+  );
 
-setInterval(
-  reAnalyzeTokens,
-  1000 * 15
-);
+  await initializeDatabase();
 
-setInterval(
-  cleanupScanned,
-  1000 * 60 * 5
-);
+  startPumpFun();
+
+  setInterval(
+    reAnalyzeTokens,
+    1000 * 15
+  );
+
+  setInterval(
+    cleanupScanned,
+    1000 * 60 * 5
+  );
+
+}
+
+startBot().catch(error => {
+
+  console.log(
+    "Startup Error:",
+    error.message
+  );
+
+});
