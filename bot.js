@@ -95,57 +95,61 @@ else {
 
   if (trade) {
 
-    completedTrades.push({
+    const completedTrade = {
 
-      contract,
+  contract,
 
-      tokenName:
-        trade.tokenName,
+  tokenName:
+    trade.tokenName,
 
-      entryPrice:
-        trade.entryPrice,
+  entryPrice:
+    trade.entryPrice,
 
-      highestPrice:
-        trade.highestPrice,
+  highestPrice:
+    trade.highestPrice,
 
-      currentPrice:
-        trade.currentPrice,
+  currentPrice:
+    trade.currentPrice,
 
-      entryMarketCap:
-        trade.entryMarketCap,
+  entryMarketCap:
+    trade.entryMarketCap,
 
-      highestMarketCap:
-        trade.highestMarketCap,
+  highestMarketCap:
+    trade.highestMarketCap,
 
-      currentMarketCap:
-        trade.currentMarketCap,
+  currentMarketCap:
+    trade.currentMarketCap,
 
-      highestPnL:
-        trade.highestPnL,
-      
-      currentPnL:
-        trade.currentPnL,
+  highestPnL:
+    trade.highestPnL,
 
-      boughtAt:
-        trade.boughtAt,
+  currentPnL:
+    trade.currentPnL,
 
-      highestReachedAt:
-        trade.highestReachedAt,
+  boughtAt:
+    trade.boughtAt,
 
-      highestMarketCapReachedAt:
-  trade.highestMarketCapReachedAt,
+  highestReachedAt:
+    trade.highestReachedAt,
 
-      entryScore:
-        trade.entryScore,
+  highestMarketCapReachedAt:
+    trade.highestMarketCapReachedAt,
 
-      buySignal:
-        trade.buySignal,
+  entryScore:
+    trade.entryScore,
 
-      sellReason:
+  buySignal:
+    trade.buySignal,
+
+  sellReason:
     trade.sellReason
 
-    });
+};
 
+await saveCompletedTrade(completedTrade);
+
+completedTrades.push(completedTrade);
+     
     console.log(
   `Completed Trades: ${completedTrades.length}`
 );
@@ -159,8 +163,11 @@ if (
 }
 
 paperTrades.delete(contract);
-    
 
+    console.log(
+  `Removed ${contract} from paperTrades`
+);
+    
   }
 
   trackedTokens.delete(contract);
@@ -215,7 +222,8 @@ const WebSocket = require("ws");
 
 const {
   pool,
-  initializeDatabase
+  initializeDatabase,
+  saveCompletedTrade
 } = require("./database");
 
 const openai = new OpenAI({
