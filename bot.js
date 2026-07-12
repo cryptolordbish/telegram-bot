@@ -5,11 +5,8 @@ console.log(
 async function reAnalyzeTokens() {
 
   console.log(
-    `Tracked Tokens: ${trackedTokens.size}`
+    "Running Re-Analysis..."
   );
-
-  const now =
-    Date.now();
 
   for (
     const [
@@ -18,176 +15,44 @@ async function reAnalyzeTokens() {
     ] of trackedTokens
   ) {
 
-const age =
-  now -
-  token.migratedAt;
+    const ageMinutes =
 
-let interval;
-
-// =====================================
-// 0 - 10 Minutes
-// =====================================
-
-if (
-  age <
-  10 * 60 * 1000
-) {
-
-  interval =
-    60 * 1000; // 1 minute
-
-}
-
-// =====================================
-// 10 - 30 Minutes
-// =====================================
-
-else if (
-  age <
-  30 * 60 * 1000
-) {
-
-  interval =
-    3 * 60 * 1000;
-
-}
-
-// =====================================
-// 30 - 60 Minutes
-// =====================================
-
-else if (
-  age <
-  60 * 60 * 1000
-) {
-
-  interval =
-   5 * 60 * 1000;
-
-}
-
-// =====================================
-// 1 - 4 Hours
-// =====================================
-
-else if (
-  age <
-  4 * 60 * 60 * 1000
-) {
-
-  interval =
-    60 * 60 * 1000;
-
-}
-
-// =====================================
-// Older than 4 Hours
-// =====================================
-
-else {
-
-  console.log(
-    `Finished Tracking ${contract}`
-  );
-
-  const trade =
-    paperTrades.get(contract);
-
-  if (trade) {
-
-    completedTrades.push({
-
-      contract,
-
-      tokenName:
-        trade.tokenName,
-
-      entryPrice:
-        trade.entryPrice,
-
-      highestPrice:
-        trade.highestPrice,
-
-      currentPrice:
-        trade.currentPrice,
-
-      entryMarketCap:
-        trade.entryMarketCap,
-
-      highestMarketCap:
-        trade.highestMarketCap,
-
-      currentMarketCap:
-        trade.currentMarketCap,
-
-      highestPnL:
-        trade.highestPnL,
-      
-      currentPnL:
-        trade.currentPnL,
-
-      boughtAt:
-        trade.boughtAt,
-
-      highestReachedAt:
-        trade.highestReachedAt,
-
-      highestMarketCapReachedAt:
-  trade.highestMarketCapReachedAt,
-
-      entryScore:
-        trade.entryScore,
-
-      buySignal:
-        trade.buySignal,
-
-      sellReason:
-    trade.sellReason
-
-    });
-
-    console.log(
-  `Completed Trades: ${completedTrades.length}`
-);
-
-if (
-  completedTrades.length >= 10
-) {
-
-  await sendPaperTradeReport();
-
-}
-
-paperTrades.delete(contract);
-    
-
-  }
-
-  trackedTokens.delete(contract);
-
-  continue;
-
-}
+      (Date.now() -
+        token.pairCreatedAt)
+      / 1000 / 60;
 
     if (
-
-      now -
-      token.lastChecked <
-
-      interval
-
+      ageMinutes >
+      CONFIG.MAX_TOKEN_AGE_MINUTES
     ) {
 
-      continue;
+      trackedTokens.delete(
+        contract
+      );
 
+      console.log(
+        `Stopped Tracking ${contract}`
+      );
+
+      continue;
     }
 
-    token.lastChecked =
-      now;
+    const minutesSinceCheck =
 
-   console.log(
-  `Rechecking ${contract} | Every ${interval / 60000} minute(s)`
-);
+      (Date.now() -
+        token.lastChecked)
+      / 1000 / 60;
+
+    if (
+      minutesSinceCheck < 5
+    ) continue;
+
+    token.lastChecked =
+      Date.now();
+
+    console.log(
+      `Rechecking ${contract}`
+    );
 
     await processToken(
       token.contract,
@@ -230,23 +95,7 @@ const CHAT_ID =
 // =====================================
 
 const scanned = new Set();
-
 const trackedTokens = new Map();
-
-const aiAnalyzedTokens = new Set();
-
-// =====================================
-// PAPER TRADING
-// =====================================
-
-const paperTrades = new Map();
-
-// Completed trades waiting
-// to be sent to Telegram
-
-const completedTrades = [];
-
-const PAPER_BUY_AMOUNT = 10;
 
 // =====================================
 // CONFIG
@@ -254,24 +103,24 @@ const PAPER_BUY_AMOUNT = 10;
 
 const CONFIG = {
 
-  MIN_MARKET_CAP: 10000,
-  MAX_MARKET_CAP: 500000,
+  MIN_MARKET_CAP: 15000,
+  MAX_MARKET_CAP: 250000,
 
-  MIN_LIQUIDITY: 4000,
+  MIN_LIQUIDITY: 5000,
 
   // SAFER ENTRY WINDOW
 
   MIN_TOKEN_AGE_MINUTES: 5,
-  MAX_TOKEN_AGE_MINUTES: 240,
-  
+  MAX_TOKEN_AGE_MINUTES: 45,
+
   // SAFETY FILTERS
 
-  MIN_HOLDERS: 15,
+  MIN_HOLDERS: 80,
 
-  MAX_TOP_HOLDER_PERCENT: 50,
-  MAX_TOP10_PERCENT: 98,
+  MAX_TOP_HOLDER_PERCENT: 15,
+  MAX_TOP10_PERCENT: 50,
 
-  MIN_RUG_SCORE: 7000,
+  MIN_RUG_SCORE: 1000,
 
   MAX_SELL_TAX: 15,
 
@@ -314,9 +163,6 @@ Data:
 - Holders: ${token.holders}
 - Top Holder: ${token.topHolder}%
 - Top 10 Holders: ${token.top10}%
-- Rug Score: ${token.rugScore}
-- Rug Risk: ${token.rugRisk}
-- Has Socials: ${token.hasSocials}
 - LP Locked: ${token.lpLocked}
 - Mint Enabled: ${token.mintEnabled}
 - Freeze Enabled: ${token.freezeEnabled}
@@ -389,259 +235,6 @@ async function sendAlert(message) {
       error.message
     );
   }
-}
-
-// =====================================
-// PAPER BUY
-// =====================================
-
-async function paperBuy(
-  contract,
-  tokenName,
-  price,
-  marketCap,
-  score,
-  signal
-) {
-  
-  if (
-    paperTrades.has(contract)
-  ) {
-    return;
-  }
-
- paperTrades.set(
-  contract,
-  {
-    contract,
-    tokenName,
-
-    entryPrice:
-      Number(price),
-
-    currentPrice:
-      Number(price),
-
-    highestPrice:
-      Number(price),
-
-    entryMarketCap:
-      marketCap,
-
-    currentMarketCap:
-      marketCap,
-
-    highestMarketCap:
-      marketCap,
-
-    buyAmount:
-      PAPER_BUY_AMOUNT,
-
-    // ADD THESE
-    entryScore:
-      score,
-
-    buySignal:
-      signal,
-
-    currentPnL: 0,
-
-    highestPnL: 0,
-
-    highestReachedAt: null,
-
-    highestMarketCapReachedAt: null,
-
-    boughtAt:
-      Date.now(),
-
-    sold: false,
-
-    sellReason: null
-  }
-);
-
-  console.log(
-    `PAPER BUY: ${tokenName}`
-  );
-}
-
-// =====================================
-// PAPER TRADE REPORT
-// =====================================
-
-async function sendPaperTradeReport() {
-
-  if (completedTrades.length < 10)
-    return;
-
-  const trades =
-    completedTrades.splice(0, 10);
-
-  let message =
-`📊 PAPER TRADE REPORT (1-10)
-
-`;
-
-  let totalGain = 0;
-
-  let wins = 0;
-
-  let best = -999999;
-
-  let worst = 999999;
-
-  for (
-
-    let i = 0;
-
-    i < trades.length;
-
-    i++
-
-  ) {
-
-    const t =
-      trades[i];
-
-    totalGain +=
-      t.highestPnL;
-
-    if (
-      t.highestPnL > 0
-    ) {
-
-      wins++;
-
-    }
-
-    if (
-      t.highestPnL > best
-    ) {
-
-      best =
-        t.highestPnL;
-
-    }
-
-    if (
-      t.highestPnL < worst
-    ) {
-
-      worst =
-        t.highestPnL;
-
-    }
-
-    const minutesToPeak =
-
-      t.highestReachedAt ?
-
-      Math.round(
-
-        (
-
-          t.highestReachedAt -
-
-          t.boughtAt
-
-        ) /
-
-        60000
-
-      )
-
-      : "-";
-
-    message +=
-
-`${i + 1}️⃣ ${t.tokenName}
-
-Score: ${t.entryScore}
-
-Signal: ${t.buySignal}
-
-Entry MC:
-$${Math.round(t.entryMarketCap).toLocaleString()}
-
-Highest MC:
-$${Math.round(t.highestMarketCap).toLocaleString()}
-
-Gain:
-${t.highestPnL.toFixed(2)}%
-
-Entry Price:
-${t.entryPrice}
-
-Highest Price:
-${t.highestPrice}
-
-Time to Peak:
-${minutesToPeak} min
-
-----------------------
-
-`;
-
-  }
-
-  const average =
-
-    totalGain /
-
-    trades.length;
-
-  const winRate =
-
-    (
-
-      wins /
-
-      trades.length
-
-    ) * 100;
-
-  message +=
-
-`📈 SUMMARY
-
-Trades:
-${trades.length}
-
-Average Gain:
-${average.toFixed(2)}%
-
-Best Performer:
-${best.toFixed(2)}%
-
-Worst Performer:
-${worst.toFixed(2)}%
-
-Win Rate:
-${winRate.toFixed(0)}%
-`;
-
-  try {
-
-  await sendAlert(message);
-
-  console.log(
-    "📊 Paper Trade Report Sent"
-  );
-
-  console.log(
-  `Paper report sent for ${trades.length} completed trades`
-);
-
-} catch (error) {
-
-  console.log(
-    "Paper Trade Report Error:",
-    error.message
-  );
-
-}
-
 }
 
 // =====================================
@@ -759,49 +352,40 @@ function calculateScore(data) {
   // HOLDERS
   // =====================================
 
- if (
-  data.holders > 300
-) {
+  if (
+    data.holders > 300
+  ) {
 
-  score += 10;
+    score += 10;
 
-} else if (
-  data.holders > 100
-) {
+  } else if (
+    data.holders < 100
+  ) {
 
-  score += 5;
-}
+    score -= 20;
+  }
+
   // =====================================
   // TOP HOLDER
   // =====================================
 
   if (
-    data.topHolder > 50
+    data.topHolder > 15
   ) {
 
     score -= 35;
   }
-    
-  else if (data.topHolder > 30) {
 
-  score -= 15;
-}
-  
   // =====================================
   // TOP 10 HOLDERS
   // =====================================
 
   if (
-    data.top10 > 90
+    data.top10 > 50
   ) {
 
     score -= 35;
   }
-
-  else if (data.top10 > 40) {
-
-  score -= 15;
-}
 
   // =====================================
   // MINT ENABLED
@@ -825,7 +409,7 @@ function calculateScore(data) {
     score -= 40;
   }
 
-   // =====================================
+  // =====================================
   // LP UNLOCKED
   // =====================================
 
@@ -834,29 +418,12 @@ function calculateScore(data) {
   ) {
 
     score -= 60;
-
-  }
-
-  // =====================================
-  // RUG SCORE (Monitor Only)
-  // =====================================
-
-  if (
-    data.rugScore &&
-    data.rugScore < CONFIG.MIN_RUG_SCORE
-  ) {
-
-    console.log(
-      `Low Rug Score = ${data.rugScore} (AI will evaluate)`
-    );
-
   }
 
   return Math.max(
     0,
     Math.min(100, score)
   );
-
 }
 
 // =====================================
@@ -897,18 +464,10 @@ async function analyzeSafety(
   token
 ) {
 
-  console.log(
-    `${contract}: Running Safety`
-  );
-
   const rug =
     await rugCheck(contract);
 
   if (!rug) {
-
-    console.log(
-      `${contract}: No RugCheck Data`
-    );
 
     return {
       safe: false,
@@ -976,129 +535,98 @@ async function analyzeSafety(
   const rugScore =
   rug.score || 0;
 
-  console.log(
-  `Rug Score for ${contract}:`,
-  rugScore
-);
-  
-const rugRisk =
+if (
   rugScore <
-  CONFIG.MIN_RUG_SCORE;
+  CONFIG.MIN_RUG_SCORE
+) {
 
-if (rugRisk) {
-
-  console.log(
-    `${contract}: Low Rug Score (${rugScore}) - AI will evaluate`
-  );
-
+  return {
+    safe: false,
+    reason: "Low Rug Score"
+  };
 }
 
   // =====================================
   // HOLDER ANALYSIS
   // =====================================
 
-  console.log(
-  `${contract}: totalHolders =`,
-  rug.totalHolders
-);
-
-console.log(
-  `${contract}: topHolders count =`,
-  rug.topHolders?.length
-);
-  
   const holders =
-  rug.totalHolders ??
-  rug.tokenMeta?.holders ??
-  0;
-  
-console.log(
-  `Holders for ${contract}: ${holders}`
-);
+    rug.tokenMeta?.holders || 0;
 
-if (
-  holders <
-  CONFIG.MIN_HOLDERS
-) {
+  if (
+    holders <
+    CONFIG.MIN_HOLDERS
+  ) {
 
-  return {
-    safe: false,
-    reason: "Low Holders"
-  };
-}
+    return {
+      safe: false,
+      reason: "Low Holders"
+    };
+  }
 
-const topHolders =
-  rug.topHolders || [];
-  
-const topHolder =
-  topHolders[0]?.pct || 0;
+  const topHolders =
+    rug.tokenMeta?.topHolders || [];
 
-console.log(
-  `Top Holder for ${contract}: ${topHolder}%`
-);
+  const topHolder =
+    topHolders[0]?.pct || 0;
 
-if (
-  topHolder >
-  CONFIG.MAX_TOP_HOLDER_PERCENT
-) {
+  if (
+    topHolder >
+    CONFIG.MAX_TOP_HOLDER_PERCENT
+  ) {
 
-  return {
-    safe: false,
-    reason: "Whale Controlled"
-  };
-}
+    return {
+      safe: false,
+      reason: "Whale Controlled"
+    };
+  }
 
-const top10 =
-  topHolders
-    .slice(0, 10)
-    .reduce(
-      (sum, h) =>
-        sum + (h.pct || 0),
-      0
-    );
+  const top10 =
 
-console.log(
-  `Top10 for ${contract}: ${top10}%`
-);
+    topHolders
+      .slice(0, 10)
+      .reduce(
+        (sum, h) =>
+          sum + (h.pct || 0),
+        0
+      );
 
-if (
-  top10 >
-  CONFIG.MAX_TOP10_PERCENT
-) {
+  if (
+    top10 >
+    CONFIG.MAX_TOP10_PERCENT
+  ) {
 
-  return {
-    safe: false,
-    reason:
-      "Supply Concentrated"
-  };
-}
-  
-// Continue with the rest of your checks below...
-  
-// =====================================
-// FAKE VOLUME (Monitor Only)
-// =====================================
+    return {
+      safe: false,
+      reason:
+        "Supply Concentrated"
+    };
+  }
 
-const liquidity =
-  pair.liquidity?.usd || 1;
+  // =====================================
+  // FAKE VOLUME
+  // =====================================
 
-const volume =
-  pair.volume?.h24 || 0;
+  const liquidity =
+    pair.liquidity?.usd || 1;
 
-const volRatio =
-  volume / liquidity;
+  const volume =
+    pair.volume?.h24 || 0;
 
-if (
-  volRatio >
-  CONFIG.MAX_VOL_LIQ_RATIO
-) {
+  const volRatio =
+    volume / liquidity;
 
-  console.log(
-    `${contract}: High Volume Ratio = ${volRatio.toFixed(2)} (AI will evaluate)`
-  );
+  if (
+    volRatio >
+    CONFIG.MAX_VOL_LIQ_RATIO
+  ) {
 
-}
-  
+    return {
+      safe: false,
+      reason: "Fake Volume"
+    };
+  }
+
   // =====================================
   // BUY / SELL RATIO
   // =====================================
@@ -1135,38 +663,32 @@ if (
 
   if (!hasSocials) {
 
-  console.log(
-    `${contract}: No Socials - AI will evaluate`
-  );
+    return {
+      safe: false,
+      reason: "No Socials"
+    };
+  }
 
+  return {
+
+    safe: true,
+
+    rugScore,
+
+    holders,
+
+    topHolder,
+
+    top10,
+
+    mintEnabled,
+
+    freezeEnabled,
+
+    lpLocked: !lpUnlocked
+  };
 }
 
- return {
-
-  safe: true,
-
-  rugScore,
-
-  rugRisk,
-
-  holders,
-
-  topHolder,
-
-  top10,
-
-  mintEnabled,
-
-  freezeEnabled,
-
-  lpLocked: !lpUnlocked,
-
-  hasSocials
-
-};
-
-}
-  
 // =====================================
 // PROCESS TOKEN
 // =====================================
@@ -1177,33 +699,6 @@ async function processToken(
   tokenUrl
 ) {
 
-  // DECLARE VARIABLES OUTSIDE TRY BLOCK
-  let pair = null;
-  let marketCap = 0;
-  let liquidity = 0;
-  let volume = 0;
-  let volRatio = 0;
-  let safety = null;
-  let score = 0;
-  let result = null;
-  let aiResult = "Skipped";
-
-  try {
-
-    console.log(
-      `Processing ${tokenName} ${contract}`
-    );
-
-// =====================================
-// WAIT FOR DEXSCREENER PAIR
-// =====================================
-
-for (
-  let attempt = 1;
-  attempt <= 6;
-  attempt++
-) {
-
   try {
 
     const pairResponse =
@@ -1212,9 +707,10 @@ for (
       );
 
     const pairs =
-      pairResponse.data?.pairs || [];
+      pairResponse.data
+        .pairs || [];
 
-    pair =
+    const pair =
       pairs.find(
         (p) =>
 
@@ -1224,48 +720,8 @@ for (
           p.liquidity?.usd > 0
       );
 
-    if (pair) {
-
-      console.log(
-        `${contract}: Pair Found`
-      );
-
-      break;
-
-    }
-
-    console.log(
-      `${contract}: Pair not ready (${attempt}/6)`
-    );
-
-  } catch (error) {
-
-    console.log(
-      `${contract}: DexScreener request failed (${attempt}/6)`
-    );
-
-  }
-
-  // Wait 5 seconds before retrying
-  await new Promise(
-    resolve =>
-      setTimeout(
-        resolve,
-        5000
-      )
-  );
-
-}
-
-if (!pair) {
-
-  console.log(
-    `${contract}: Pair not found after 30 seconds`
-  );
-
-  return;
-
-}
+    if (!pair)
+      return;
 
     // =====================================
     // TOKEN AGE
@@ -1300,20 +756,14 @@ if (!pair) {
 trackedTokens.set(
   contract,
   {
-    ...existing,
-
     contract,
     tokenName,
     tokenUrl,
-
     pairCreatedAt:
       pair.pairCreatedAt,
 
-    migratedAt:
-      existing?.migratedAt,
-
     lastChecked:
-      existing?.lastChecked ??
+      existing?.lastChecked ||
       Date.now(),
 
     lastSignal:
@@ -1321,98 +771,18 @@ trackedTokens.set(
   }
 );
 
-// =====================================
-// MARKET DATA
-// =====================================
+    // =====================================
+    // MARKET DATA
+    // =====================================
 
-marketCap =
-  pair.marketCap || 0;
+    const marketCap =
+      pair.marketCap || 0;
 
-liquidity =
-  pair.liquidity?.usd || 0;
+    const liquidity =
+      pair.liquidity?.usd || 0;
 
-volume =
-  pair.volume?.h24 || 0;
-
-console.log(
-  `${tokenName} | MC=${marketCap} | LIQ=${liquidity}`
-);
-
-// =====================================
-// UPDATE PAPER TRADE
-// =====================================
-
-const trade =
-  paperTrades.get(contract);
-
-if (
-  trade &&
-  !trade.sold
-) {
-
-  const currentPrice =
-  Number(pair.priceUsd || 0);
-
-trade.currentPrice =
-  currentPrice;
-
-  trade.currentMarketCap =
-    marketCap;
-
-  if (trade.entryPrice > 0) {
-
-  trade.currentPnL =
-    (
-      (
-        trade.currentPrice -
-        trade.entryPrice
-      ) /
-      trade.entryPrice
-    ) * 100;
-
-}
-
- if (
-  trade.currentPrice >
-  trade.highestPrice
-) {
-
-  trade.highestPrice =
-    trade.currentPrice;
-
-  trade.highestReachedAt =
-    Date.now();
-
-}
-
-  if (
-  marketCap >
-  trade.highestMarketCap
-) {
-
-  trade.highestMarketCap =
-    marketCap;
-
-  trade.highestMarketCapReachedAt =
-    Date.now();
-
-}
-
-  if (
-    trade.currentPnL >
-    trade.highestPnL
-  ) {
-
-    trade.highestPnL =
-      trade.currentPnL;
-
-  }
-
-  console.log(
-    `📈 ${trade.tokenName} | Current: ${trade.currentPnL.toFixed(2)}% | Highest: ${trade.highestPnL.toFixed(2)}%`
-  );
-
-}
+    const volume =
+      pair.volume?.h24 || 0;
 
     // =====================================
     // BASIC FILTERS
@@ -1434,49 +804,36 @@ trade.currentPrice =
       return;
     }
 
- // =====================================
-// SAFETY CHECKS
-// =====================================
+    // =====================================
+    // SAFETY CHECKS
+    // =====================================
 
-safety =
-  await analyzeSafety(
-    contract,
-    pair,
-    pair
-  );
+    const safety =
+      await analyzeSafety(
+        contract,
+        pair,
+        pair
+      );
 
-if (!safety.safe) {
+    if (!safety.safe) {
 
-  console.log(
-    `Rejected ${contract}: ${safety.reason}`
-  );
+      console.log(
+        `Rejected ${contract}: ${safety.reason}`
+      );
 
-  // Update lastSignal to track rejection
-  // but keep token for re-analysis
-  const tracked =
-    trackedTokens.get(contract);
+      return;
+    }
 
-  if (tracked) {
-    tracked.lastSignal =
-      `❌ ${safety.reason}`;
-  }
-
-  return;
-}
-  
-     // =====================================
+    // =====================================
     // SCORE
     // =====================================
 
-    score =
+    const score =
       calculateScore({
 
         marketCap,
         liquidity,
         volume,
-
-        rugScore:          
-          safety.rugScore,  
 
         holders:
           safety.holders,
@@ -1497,21 +854,25 @@ if (!safety.safe) {
           safety.lpLocked
       });
 
-    result =
+    const result =
       getSignal(score);
+      const tracked =
+  trackedTokens.get(contract);
 
-    console.log(
-      `${contract}: Score=${score}, Signal=${result.signal}, Allowed=${result.allowed}`
-    );
+if (
+  tracked &&
+  tracked.lastSignal ===
+  result.signal
+) {
 
-    const tracked =
-      trackedTokens.get(contract);
+  return;
+}
 
-    if (tracked) {
+if (tracked) {
 
-      tracked.lastSignal =
-        result.signal;
-    }
+  tracked.lastSignal =
+    result.signal;
+}
 
     if (!result.allowed)
       return;
@@ -1520,92 +881,42 @@ if (!safety.safe) {
     // AI
     // =====================================
 
-if (
-  score >= 50
-) {
+    let aiResult =
+      "Skipped";
 
-  console.log(
-    `${contract}: Running AI Analysis`
-  );
+    if (score >= 75) {
 
-  aiResult =
-    await aiAnalyzeToken({
+      aiResult =
+        await aiAnalyzeToken({
 
-      marketCap,
-      liquidity,
-      volume,
+          marketCap,
+          liquidity,
+          volume,
 
-      volRatio,
+          holders:
+            safety.holders,
 
-      rugScore:
-        safety.rugScore,
+          topHolder:
+            safety.topHolder,
 
-      rugRisk:
-        safety.rugRisk,
+          top10:
+            safety.top10,
 
-      hasSocials:
-        safety.hasSocials,
+          mintEnabled:
+            safety.mintEnabled,
 
-      holders:
-        safety.holders,
+          freezeEnabled:
+            safety.freezeEnabled,
 
-      topHolder:
-        safety.topHolder,
+          lpLocked:
+            safety.lpLocked
+        });
+    }
 
-      top10:
-        safety.top10,
+    // =====================================
+    // ALERT
+    // =====================================
 
-      mintEnabled:
-        safety.mintEnabled,
-
-      freezeEnabled:
-        safety.freezeEnabled,
-
-      lpLocked:
-        safety.lpLocked
-
-    });
-
-}
-    
-// =====================================
-// PAPER BUY
-// =====================================
-
-if (score >= 75) {
-
-  await paperBuy(
-    contract,
-    tokenName,
-    pair.priceUsd,
-    marketCap,
-    score,
-    result.signal
-  );
-
-}
-
-  } catch (error) {
-    console.log(
-      "Process Token Error:",
-      error.message
-    );
-    console.log(
-      "Failed URL:",
-      error.config?.url
-    );
-    console.log(
-      "Status:",
-      error.response?.status
-    );
-    return;
-  }
-
-  // =====================================
-  // ALERT (OUTSIDE TRY-CATCH)
-  // =====================================
-
-  if (result && result.allowed) {
     await sendAlert(`
 
 🚨 ${result.signal}
@@ -1652,180 +963,104 @@ ${safety.mintEnabled ? "ON" : "OFF"}
 ${safety.freezeEnabled ? "ON" : "OFF"}
 
 🔗 ${tokenUrl || "No URL"}
-    `);
+
+`);
+
+  } catch (error) {
+
+    console.log(
+      "Process Token Error:",
+      error.message
+    );
   }
 }
-  
+
 // =====================================
 // PUMPFUN TRACKER
 // =====================================
-
-function startPumpFun() {
-
-  const ws = new WebSocket(
-    "wss://pumpportal.fun/api/data"
-  );
-
-  ws.on("open", () => {
-
-    console.log(
-      "Pump.fun Connected"
-    );
-
-    ws.send(
-      JSON.stringify({
-        method: "subscribeMigration"
-      })
-    );
-
-  });
-
-  ws.on(
-    "message",
-    async (data) => {
-
-      try {
-
-        const token =
-          JSON.parse(data);
-
-        console.log(
-          "Migration Event:",
-          token
-        );
-
-        if (!token.mint)
-          return;
-
-        const contract =
-          token.mint;
-
-        if (
-          scanned.has(contract)
-        ) {
-          return;
-        }
-
-        scanned.add(contract);
-
-        console.log(
-          `Graduated Token: ${contract}`
-        );
-
-       trackedTokens.set(
-  contract,
-  {
-    contract,
-
-    tokenName:
-      token.name || contract,
-
-    tokenUrl:
-      `https://pump.fun/${contract}`,
-
-    pairCreatedAt:
-      Date.now(),
-
-    migratedAt:
-      Date.now(),
-
-    lastChecked:
-      0,
-
-    lastSignal:
-      null
-  }
-);
-
-  // =====================================
-// WAIT 2 MINUTES THEN PROCESS
-// =====================================
-
-setTimeout(async () => {
-
-  await processToken(
-
-    contract,
-
-    token.name ||
-      contract,
-
-    `https://pump.fun/${contract}`
-
-  );
-
-}, 1000 * 60 * 2);
-
-      } catch (error) {
-
-        console.log(
-          "Pumpfun Error:",
-          error.message
-        );
-
-      }
-
-    }
-
-  );
-
-  ws.on("close", () => {
-
-    console.log(
-      "Pump.fun Reconnecting..."
-    );
-
-    setTimeout(
-      startPumpFun,
-      5000
-    );
-
-  });
-
-  ws.on("error", (error) => {
-
-    console.log(
-      "Pumpfun WS Error:",
-      error.message
-    );
-
-  });
-
-}
-
-// =====================================
-// CLEANUP MEMORY
-// =====================================
-
-function cleanupScanned() {
-
-  for (
-    const contract
-    of scanned
-  ) {
-
-    // If we're no longer tracking
-    // the token, remove it from
-    // the scanned list too.
-
-    if (
-      !trackedTokens.has(contract)
-    ) {
-
-      scanned.delete(
-        contract
-      );
-
-      console.log(
-        `Cleaned ${contract} from scanned memory`
-      );
-
-    }
-
-  }
-
-}
-
+function startPumpFun() {  
+  
+  const ws = new WebSocket(  
+    "wss://pumpportal.fun/api/data"  
+  );  
+  
+  ws.on("open", () => {  
+  
+    console.log(  
+      "Pump.fun Connected"  
+    );  
+  
+    ws.send(  
+      JSON.stringify({  
+        method:  
+          "subscribeNewToken"  
+      })  
+    );  
+  });  
+  
+  ws.on(  
+    "message",  
+    async (data) => {  
+  
+      try {  
+  
+        const token =  
+          JSON.parse(data);  
+  
+        if (!token.mint)  
+          return;  
+  
+        if (  
+          scanned.has(  
+            token.mint  
+          )  
+        ) return;  
+  
+        scanned.add(  
+          token.mint  
+        );  
+  
+        await processToken(  
+  
+          token.mint,  
+  
+          token.name ||  
+  
+          "Unknown",  
+  
+          https//pump.fun/${token.mint}  
+        );  
+  
+      } catch (error) {  
+  
+        console.log(  
+          "Pumpfun Error:",  
+          error.message  
+        );  
+      }  
+    }  
+  );  
+  
+  ws.on("close", () => {  
+  
+    console.log(  
+      "Pump.fun Reconnecting..."  
+    );  
+  
+    setTimeout(  
+      startPumpFun,  
+      5000  
+    );  
+  });  
+  
+  ws.on("error", (error) => {  
+  
+    console.log(  
+      "Pumpfun WS Error:",  
+      error.message  
+    );  
+  });  
+}  
 // =====================================
 // START BOT
 // =====================================
@@ -1838,11 +1073,10 @@ startPumpFun();
 
 setInterval(
   reAnalyzeTokens,
-  1000 * 15
+  1000 * 60 * 5
 );
 
 setInterval(
   cleanupScanned,
-  1000 * 60 * 5
+  1000 * 60 * 30
 );
-
