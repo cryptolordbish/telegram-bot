@@ -921,6 +921,11 @@ async function analyzeSafety(
   const rug =
     await rugCheck(contract);
 
+  console.log(
+  "RugCheck Response:",
+  JSON.stringify(rug, null, 2)
+);
+
   if (!rug) {
 
     console.log(
