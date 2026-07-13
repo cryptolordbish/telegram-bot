@@ -140,6 +140,7 @@ async function saveCompletedTrade(trade) {
       INSERT INTO completed_trades (
 
         contract,
+        developer_wallet,
         token_name,
 
         entry_price,
@@ -166,27 +167,28 @@ async function saveCompletedTrade(trade) {
 
       VALUES (
 
-        $1,$2,
+  $1,$2,$3,
 
-        $3,$4,$5,
+  $4,$5,$6,
 
-        $6,$7,$8,
+  $7,$8,$9,
 
-        $9,$10,
+  $10,$11,
 
-        $11,$12,$13,
+  $12,$13,$14,
 
-        $14,$15,
+  $15,$16,
 
-        $16
+  $17
 
-      )
+)
 
       `,
 
       [
 
         trade.contract,
+        trade.developerWallet,
         trade.tokenName,
 
         trade.entryPrice,
