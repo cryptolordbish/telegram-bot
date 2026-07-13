@@ -231,6 +231,145 @@ async function saveCompletedTrade(trade) {
 }
 
 // =====================================
+// UPDATE DEVELOPER STATS
+// =====================================
+
+async function updateDeveloperStats(trade) {
+
+  try {
+
+    const wallet =
+      trade.developerWallet;
+
+    if (!wallet)
+      return;
+
+    const gain =
+      trade.highestPnL;
+
+    const marketCap =
+      trade.highestMarketCap;
+
+    const existing =
+      await pool.query(
+
+        `SELECT * FROM developers
+         WHERE developer_wallet = $1`,
+
+        [wallet]
+
+      );
+
+    // ---------------------------------
+    // FIRST TIME DEVELOPER
+    // ---------------------------------
+
+    if (
+      existing.rows.length === 0
+    ) {
+
+      await pool.query(
+
+        `
+
+        INSERT INTO developers (
+
+          developer_wallet,
+
+          total_launches,
+
+          winners_3x,
+
+          winners_5x,
+
+          winners_10x,
+
+          rugs,
+
+          average_gain,
+
+          average_market_cap,
+
+          best_gain,
+
+          best_market_cap,
+
+          trust_score
+
+        )
+
+        VALUES (
+
+          $1,
+
+          1,
+
+          $2,
+
+          $3,
+
+          $4,
+
+          $5,
+
+          $6,
+
+          $7,
+
+          $8,
+
+          $9,
+
+          50
+
+        )
+
+        `,
+
+        [
+
+          wallet,
+
+          gain >= 200 ? 1 : 0,
+
+          gain >= 400 ? 1 : 0,
+
+          gain >= 900 ? 1 : 0,
+
+          gain < 50 ? 1 : 0,
+
+          gain,
+
+          marketCap,
+
+          gain,
+
+          marketCap
+
+        ]
+
+      );
+
+      console.log(
+        `👤 New Developer Stored`
+      );
+
+      return;
+
+    }
+
+  } catch (error) {
+
+    console.log(
+      "Developer Update Error:",
+      error.message
+    );
+
+  }
+
+}
+
+// =====================================
 // EXPORTS
 // =====================================
 
@@ -240,6 +379,8 @@ module.exports = {
 
   initializeDatabase,
 
-  saveCompletedTrade
+  saveCompletedTrade,
+
+  updateDeveloperStats
 
 };
