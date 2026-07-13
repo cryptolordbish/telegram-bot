@@ -919,11 +919,36 @@ async function analyzeSafety(
   );
 
   const rug =
-    await rugCheck(contract);
+  await rugCheck(contract);
 
-  console.log(
-  "RugCheck Response:",
-  JSON.stringify(rug, null, 2)
+console.log(
+  "RugCheck Keys:",
+  Object.keys(rug)
+);
+
+console.log(
+  "TokenMeta:",
+  rug.tokenMeta
+);
+
+console.log(
+  "Creator:",
+  rug.creator
+);
+
+console.log(
+  "Creator Address:",
+  rug.creatorAddress
+);
+
+console.log(
+  "Owner:",
+  rug.owner
+);
+
+console.log(
+  "Deployer:",
+  rug.deployer
 );
 
   if (!rug) {
