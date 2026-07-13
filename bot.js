@@ -99,6 +99,9 @@ else {
 
   contract,
 
+      developerWallet:
+  trade.developerWallet,
+
   tokenName:
     trade.tokenName,
 
@@ -415,6 +418,7 @@ async function sendAlert(message) {
 async function paperBuy(
   contract,
   tokenName,
+  developerWallet,
   price,
   marketCap,
   score,
@@ -432,6 +436,9 @@ async function paperBuy(
   {
     contract,
     tokenName,
+    
+    developerWallet:
+     developerWallet,
 
     entryPrice:
       Number(price),
@@ -1622,13 +1629,14 @@ if (
 if (score >= 75) {
 
   await paperBuy(
-    contract,
-    tokenName,
-    pair.priceUsd,
-    marketCap,
-    score,
-    result.signal
-  );
+  contract,
+  tokenName,
+  rug.creator,
+  pair.priceUsd,
+  marketCap,
+  score,
+  result.signal
+);
 
 }
 
