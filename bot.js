@@ -1198,9 +1198,12 @@ if (
 
 }
 
- return {
+return {
 
   safe: true,
+
+  developerWallet:
+    rug.creator,
 
   rugScore,
 
@@ -1632,14 +1635,14 @@ if (
 if (score >= 75) {
 
   await paperBuy(
-  contract,
-  tokenName,
-  rug.creator,
-  pair.priceUsd,
-  marketCap,
-  score,
-  result.signal
-);
+    contract,
+    tokenName,
+    safety.developerWallet,
+    pair.priceUsd,
+    marketCap,
+    score,
+    result.signal
+  );
 
 }
 
