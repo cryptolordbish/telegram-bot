@@ -238,18 +238,26 @@ async function updateDeveloperStats(trade) {
 
   try {
 
-    const wallet =
-      trade.developerWallet;
+const wallet =
+  trade.developerWallet;
 
-    if (!wallet)
-      return;
+if (!wallet) {
 
-    const gain =
-      trade.highestPnL;
+  console.log(
+    "⚠️ No developer wallet found."
+  );
 
-    const marketCap =
-      trade.highestMarketCap;
+  return;
 
+}
+
+const gain =
+  Number(trade.highestPnL || 0);
+
+const marketCap =
+  Number(trade.highestMarketCap || 0);
+
+    
     const existing =
       await pool.query(
 
@@ -351,8 +359,8 @@ async function updateDeveloperStats(trade) {
       );
 
       console.log(
-        `👤 New Developer Stored`
-      );
+  `👤 New Developer Stored: ${wallet}`
+    );
 
       return;
 
