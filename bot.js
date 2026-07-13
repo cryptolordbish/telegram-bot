@@ -149,9 +149,12 @@ else {
 
 };
 
+completedTrades.push(completedTrade);
+
 await saveCompletedTrade(completedTrade);
 
-completedTrades.push(completedTrade);
+await updateDeveloperStats(completedTrade);
+
      
     console.log(
   `Completed Trades: ${completedTrades.length}`
@@ -224,9 +227,9 @@ const WebSocket = require("ws");
 // =====================================
 
 const {
-  pool,
   initializeDatabase,
-  saveCompletedTrade
+  saveCompletedTrade,
+  updateDeveloperStats
 } = require("./database");
 
 const openai = new OpenAI({
