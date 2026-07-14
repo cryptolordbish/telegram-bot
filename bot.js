@@ -153,8 +153,9 @@ completedTrades.push(completedTrade);
 
 await saveCompletedTrade(completedTrade);
 
-await updateDeveloperStats(completedTrade);
+await saveDeveloperLaunch(completedTrade);
 
+await updateDeveloperStats(completedTrade);
      
     console.log(
   `Completed Trades: ${completedTrades.length}`
@@ -165,6 +166,8 @@ if (
 ) {
 
   await sendPaperTradeReport();
+
+  await sendDeveloperReport();
 
 }
 
@@ -231,6 +234,8 @@ const {
   initializeDatabase,
 
   saveCompletedTrade,
+
+  saveDeveloperLaunch,
 
   updateDeveloperStats,
 
@@ -674,6 +679,89 @@ ${winRate.toFixed(0)}%
   );
 
 }
+
+}
+
+// =====================================
+// DEVELOPER REPORT
+// =====================================
+
+async function sendDeveloperReport() {
+
+  try {
+
+    const developers =
+      await getTopDevelopers(10);
+
+    if (!developers.length) {
+
+      console.log(
+        "No developers stored yet."
+      );
+
+      return;
+
+    }
+
+    let message =
+`🧠 DEVELOPER INTELLIGENCE REPORT
+
+Developers Tracked:
+${developers.length}
+
+🏆 TOP DEVELOPERS
+
+`;
+
+    developers.forEach((dev, index) => {
+
+      message +=
+
+`${index + 1}️⃣ ${dev.developer_wallet}
+
+Launches:
+${dev.total_launches}
+
+3X Winners:
+${dev.winners_3x}
+
+5X Winners:
+${dev.winners_5x}
+
+10X Winners:
+${dev.winners_10x}
+
+Average Gain:
+${dev.average_gain.toFixed(2)}%
+
+Best Gain:
+${dev.best_gain.toFixed(2)}%
+
+Trust Score:
+${dev.trust_score}
+
+------------------------
+
+`;
+
+    });
+
+    await sendAlert(message);
+
+    console.log(message);
+
+    console.log(
+      "🧠 Developer Report Sent"
+    );
+
+  } catch (error) {
+
+    console.log(
+      "Developer Report Error:",
+      error.message
+    );
+
+  }
 
 }
 
