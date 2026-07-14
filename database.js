@@ -378,6 +378,48 @@ const marketCap =
 }
 
 // =====================================
+// GET TOP DEVELOPERS
+// =====================================
+
+async function getTopDevelopers(limit = 10) {
+
+  try {
+
+    const result = await pool.query(
+
+      `
+
+      SELECT *
+
+      FROM developers
+
+      ORDER BY trust_score DESC,
+               average_gain DESC
+
+      LIMIT $1
+
+      `,
+
+      [limit]
+
+    );
+
+    return result.rows;
+
+  } catch (error) {
+
+    console.log(
+      "Get Developers Error:",
+      error.message
+    );
+
+    return [];
+
+  }
+
+}
+
+// =====================================
 // EXPORTS
 // =====================================
 
@@ -389,6 +431,8 @@ module.exports = {
 
   saveCompletedTrade,
 
-  updateDeveloperStats
+  updateDeveloperStats,
+
+  getTopDevelopers
 
 };
