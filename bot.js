@@ -517,7 +517,7 @@ async function sendPaperTradeReport() {
     completedTrades.splice(0, 10);
 
   let message =
-`📊 PAPER TRADE REPORT (1-10)
+`📊 PAPER TRADE REPORT
 
 `;
 
@@ -553,23 +553,11 @@ async function sendPaperTradeReport() {
 
     }
 
-    if (
-      t.highestPnL > best
-    ) {
+    best =
+      Math.max(best, t.highestPnL);
 
-      best =
-        t.highestPnL;
-
-    }
-
-    if (
-      t.highestPnL < worst
-    ) {
-
-      worst =
-        t.highestPnL;
-
-    }
+    worst =
+      Math.min(worst, t.highestPnL);
 
     const minutesToPeak =
 
@@ -583,9 +571,7 @@ async function sendPaperTradeReport() {
 
           t.boughtAt
 
-        ) /
-
-        60000
+        ) / 60000
 
       )
 
@@ -595,9 +581,11 @@ async function sendPaperTradeReport() {
 
 `${i + 1}️⃣ ${t.tokenName}
 
-Score: ${t.entryScore}
+Score:
+${t.entryScore}
 
-Signal: ${t.buySignal}
+Signal:
+${t.buySignal}
 
 Entry MC:
 $${Math.round(t.entryMarketCap).toLocaleString()}
@@ -608,36 +596,20 @@ $${Math.round(t.highestMarketCap).toLocaleString()}
 Gain:
 ${t.highestPnL.toFixed(2)}%
 
-Entry Price:
-${t.entryPrice}
-
-Highest Price:
-${t.highestPrice}
-
-Time to Peak:
+Time To Peak:
 ${minutesToPeak} min
 
-----------------------
+-----------------------
 
 `;
 
   }
 
   const average =
-
-    totalGain /
-
-    trades.length;
+    totalGain / trades.length;
 
   const winRate =
-
-    (
-
-      wins /
-
-      trades.length
-
-    ) * 100;
+    wins / trades.length * 100;
 
   message +=
 
@@ -649,10 +621,10 @@ ${trades.length}
 Average Gain:
 ${average.toFixed(2)}%
 
-Best Performer:
+Best:
 ${best.toFixed(2)}%
 
-Worst Performer:
+Worst:
 ${worst.toFixed(2)}%
 
 Win Rate:
@@ -661,42 +633,52 @@ ${winRate.toFixed(0)}%
 
   try {
 
-  await sendAlert(message);
+    await sendAlert(message);
 
-  console.log(
-    "📊 Paper Trade Report Sent"
-  );
+    console.log(
+      "📊 Paper Trade Report Sent"
+    );
 
-  console.log(
-  `Paper report sent for ${trades.length} completed trades`
-);
+    await sendDeveloperReport(trades);
 
-} catch (error) {
+  } catch (error) {
 
-  console.log(
-    "Paper Trade Report Error:",
-    error.message
-  );
+    console.log(
+      "Paper Trade Report Error:",
+      error.message
+    );
 
-}
+  }
 
 }
+
 
 // =====================================
 // DEVELOPER REPORT
 // =====================================
 
-async function sendDeveloperReport() {
+async function sendDeveloperReport(trades) {
 
   try {
 
-    const developers =
-      await getTopDevelopers(10);
+    const uniqueDevelopers = [
 
-    if (!developers.length) {
+      ...new Set(
+
+        trades
+
+          .map(t => t.developerWallet)
+
+          .filter(Boolean)
+
+      )
+
+    ];
+
+    if (!uniqueDevelopers.length) {
 
       console.log(
-        "No developers stored yet."
+        "No developer wallets found."
       );
 
       return;
@@ -704,23 +686,105 @@ async function sendDeveloperReport() {
     }
 
     let message =
+
 `🧠 DEVELOPER INTELLIGENCE REPORT
 
 Developers Tracked:
-${developers.length}
+${uniqueDevelopers.length}
 
-🏆 TOP DEVELOPERS
+======================
 
 `;
 
-    developers.forEach((dev, index) => {
+    for (
 
-      message +=
+      let index = 0;
 
-`${index + 1}️⃣ ${dev.developer_wallet}
+      index < uniqueDevelopers.length;
+
+      index++
+
+    ) {
+
+      const wallet =
+        uniqueDevelopers[index];
+
+      const stats =
+        await pool.query(
+
+          `
+
+          SELECT *
+
+          FROM developers
+
+          WHERE developer_wallet = $1
+
+          `,
+
+          [wallet]
+
+        );
+
+      const launches =
+        await pool.query(
+
+          `
+
+          SELECT *
+
+          FROM developer_launches
+
+          WHERE developer_wallet = $1
+
+          ORDER BY created_at DESC
+
+          LIMIT 5
+
+          `,
+
+          [wallet]
+
+        );
+
+      const dev =
+        stats.rows[0];
+
+      const latest =
+        launches.rows[0];
+
+      if (!dev || !latest)
+        continue;
+
+      const developerStatus =
+
+  dev.total_launches <= 1
+
+    ? "🟢 NEW DEVELOPER"
+
+    : "🔥 RETURNING DEVELOPER";
+
+     message += `
+
+${index + 1}️⃣ ${developerStatus}
+
+Wallet:
+${wallet.slice(0,6)}...${wallet.slice(-6)}
 
 Launches:
 ${dev.total_launches}
+
+Current Token:
+${latest.token_name || "Unknown"}
+
+Current Gain:
+${Number(latest.highest_gain || 0).toFixed(2)}%
+
+Average Gain:
+${Number(dev.average_gain || 0).toFixed(2)}%
+
+Best Gain:
+${Number(dev.best_gain || 0).toFixed(2)}%
 
 3X Winners:
 ${dev.winners_3x}
@@ -731,24 +795,51 @@ ${dev.winners_5x}
 10X Winners:
 ${dev.winners_10x}
 
-Average Gain:
-${dev.average_gain.toFixed(2)}%
+⭐ Trust Score:
+${dev.trust_score}/100
 
-Best Gain:
-${dev.best_gain.toFixed(2)}%
-
-Trust Score:
-${dev.trust_score}
-
-------------------------
+📚 Previous Launches
 
 `;
 
-    });
+    if (launches.rows.length <= 1) {
+
+  message +=
+`No previous launches yet.
+
+`;
+
+} else {
+
+  launches.rows.slice(1).forEach((launch, i) => {
+
+    message +=
+
+${i + 1}. ${launch.token_name || "Unknown"}
+
+Gain:
+${Number(launch.highest_gain || 0).toFixed(2)}%
+
+Highest MC:
+$${Math.round(
+launch.highest_market_cap || 0
+).toLocaleString()}
+
+`;
+
+  });
+
+ }     
+      
+      message +=
+
+`-----------------------------
+
+`;
+
+    }
 
     await sendAlert(message);
-
-    console.log(message);
 
     console.log(
       "🧠 Developer Report Sent"
