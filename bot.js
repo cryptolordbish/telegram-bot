@@ -227,9 +227,15 @@ const WebSocket = require("ws");
 // =====================================
 
 const {
+
   initializeDatabase,
+
   saveCompletedTrade,
-  updateDeveloperStats
+
+  updateDeveloperStats,
+
+  getTopDevelopers
+
 } = require("./database");
 
 const openai = new OpenAI({
