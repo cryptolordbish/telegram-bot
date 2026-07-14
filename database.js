@@ -157,11 +157,40 @@ console.log(
   "✅ developer_launches table ready"
 );
 
-   console.log(
-    "✅ PostgreSQL Ready"
-  );
+// =====================================
+// DATABASE STATS
+// =====================================
+
+const completed = await pool.query(
+  "SELECT COUNT(*) FROM completed_trades"
+);
+
+console.log(
+  `📊 Completed Trades Stored: ${completed.rows[0].count}`
+);
+
+const developers = await pool.query(
+  "SELECT COUNT(*) FROM developers"
+);
+
+console.log(
+  `👤 Developers Stored: ${developers.rows[0].count}`
+);
+
+const launches = await pool.query(
+  "SELECT COUNT(*) FROM developer_launches"
+);
+
+console.log(
+  `📚 Developer Launches Stored: ${launches.rows[0].count}`
+);
+
+console.log(
+  "✅ PostgreSQL Ready"
+);
 
 }
+
 
 // =====================================
 // SAVE COMPLETED TRADE
