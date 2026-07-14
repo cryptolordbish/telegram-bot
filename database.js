@@ -119,7 +119,45 @@ async function initializeDatabase() {
     "✅ developers table ready"
   );
 
-  console.log(
+// =====================================
+// DEVELOPER LAUNCH HISTORY
+// =====================================
+
+await pool.query(`
+
+CREATE TABLE IF NOT EXISTS developer_launches (
+
+id SERIAL PRIMARY KEY,
+
+developer_wallet TEXT,
+
+contract TEXT,
+
+token_name TEXT,
+
+highest_gain DOUBLE PRECISION,
+
+highest_market_cap DOUBLE PRECISION,
+
+entry_score INTEGER,
+
+buy_signal TEXT,
+
+sell_reason TEXT,
+
+bought_at BIGINT,
+
+created_at TIMESTAMP DEFAULT NOW()
+
+);
+
+`);
+
+console.log(
+  "✅ developer_launches table ready"
+);
+
+   console.log(
     "✅ PostgreSQL Ready"
   );
 
@@ -224,6 +262,100 @@ async function saveCompletedTrade(trade) {
     console.log(
       "Database Save Error:",
       error.message
+    );
+
+  }
+
+}
+
+// =====================================
+// SAVE DEVELOPER LAUNCH
+// =====================================
+
+async function saveDeveloperLaunch(trade) {
+
+  try {
+
+    await pool.query(
+
+      `
+
+      INSERT INTO developer_launches (
+
+        developer_wallet,
+
+        contract,
+
+        token_name,
+
+        highest_gain,
+
+        highest_market_cap,
+
+        entry_score,
+
+        buy_signal,
+
+        sell_reason,
+
+        bought_at
+
+      )
+
+      VALUES (
+
+        $1,$2,$3,
+
+        $4,$5,
+
+        $6,$7,
+
+        $8,
+
+        $9
+
+      )
+
+      `,
+
+      [
+
+        trade.developerWallet,
+
+        trade.contract,
+
+        trade.tokenName,
+
+        trade.highestPnL,
+
+        trade.highestMarketCap,
+
+        trade.entryScore,
+
+        trade.buySignal,
+
+        trade.sellReason,
+
+        trade.boughtAt
+
+      ]
+
+    );
+
+    console.log(
+
+      `📚 Developer launch saved for ${trade.developerWallet}`
+
+    );
+
+  } catch (error) {
+
+    console.log(
+
+      "Developer Launch Save Error:",
+
+      error.message
+
     );
 
   }
@@ -366,6 +498,167 @@ const marketCap =
 
     }
 
+ // ---------------------------------
+// EXISTING DEVELOPER
+// ---------------------------------
+
+const dev = existing.rows[0];
+
+const totalLaunches =
+  dev.total_launches + 1;
+
+const winners3x =
+  dev.winners_3x +
+  (gain >= 200 ? 1 : 0);
+
+const winners5x =
+  dev.winners_5x +
+  (gain >= 400 ? 1 : 0);
+
+const winners10x =
+  dev.winners_10x +
+  (gain >= 900 ? 1 : 0);
+
+const rugs =
+  dev.rugs +
+  (gain < 50 ? 1 : 0);
+
+const averageGain =
+
+  (
+
+    dev.average_gain *
+
+    dev.total_launches +
+
+    gain
+
+  ) /
+
+  totalLaunches;
+
+const averageMarketCap =
+
+  (
+
+    dev.average_market_cap *
+
+    dev.total_launches +
+
+    marketCap
+
+  ) /
+
+  totalLaunches;
+
+const bestGain =
+  Math.max(
+    dev.best_gain,
+    gain
+  );
+
+const bestMarketCap =
+  Math.max(
+    dev.best_market_cap,
+    marketCap
+  );
+
+// ---------------------------------
+// TRUST SCORE
+// ---------------------------------
+
+const trustScore =
+
+  Math.max(
+
+    0,
+
+    Math.min(
+
+      100,
+
+      Math.round(
+
+        winners3x * 5 +
+
+        winners5x * 10 +
+
+        winners10x * 20 -
+
+        rugs * 5
+
+      )
+
+    )
+
+  );
+
+await pool.query(
+
+  `
+
+  UPDATE developers
+
+  SET
+
+    total_launches = $1,
+
+    winners_3x = $2,
+
+    winners_5x = $3,
+
+    winners_10x = $4,
+
+    rugs = $5,
+
+    average_gain = $6,
+
+    average_market_cap = $7,
+
+    best_gain = $8,
+
+   best_market_cap = $9,
+
+   trust_score = $10,
+
+   last_seen = NOW()
+
+  WHERE developer_wallet = $11
+
+  `,
+
+[
+  totalLaunches,
+  winners3x,
+  winners5x,
+  winners10x,
+  rugs,
+  averageGain,
+  averageMarketCap,
+  bestGain,
+  bestMarketCap,
+  trustScore,
+  wallet
+]
+  
+);
+
+console.log(
+  `🔄 Updated Developer: ${wallet}`
+);
+
+console.log({
+  launches: totalLaunches,
+  trustScore,
+  winners3x,
+  winners5x,
+  winners10x,
+  rugs,
+  averageGain,
+  bestGain
+});
+    
+
   } catch (error) {
 
     console.log(
@@ -430,6 +723,8 @@ module.exports = {
   initializeDatabase,
 
   saveCompletedTrade,
+
+  saveDeveloperLaunch,
 
   updateDeveloperStats,
 
