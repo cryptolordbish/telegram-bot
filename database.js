@@ -376,34 +376,6 @@ async function saveDeveloperLaunch(trade) {
       `📚 Developer launch saved for ${trade.developerWallet}`
     );
 
-    const launches = await pool.query(
-
-  `
-
-  SELECT *
-
-  FROM developer_launches
-
-  WHERE developer_wallet = $1
-
-  ORDER BY created_at DESC
-
-  LIMIT 5
-
-  `,
-
-  [trade.developerWallet]
-
-);
-
-console.log(
-
-  `📖 ${trade.developerWallet} Launch History:`,
-
-  launches.rows
-
-);
-
   } catch (error) {
 
     console.log(
@@ -769,6 +741,62 @@ async function getTopDevelopers(limit = 10) {
 }
 
 // =====================================
+// GET DEVELOPER
+// =====================================
+
+async function getDeveloper(wallet) {
+
+  const result = await pool.query(
+
+    `
+
+    SELECT *
+
+    FROM developers
+
+    WHERE developer_wallet = $1
+
+    `,
+
+    [wallet]
+
+  );
+
+  return result.rows[0];
+
+}
+
+// =====================================
+// GET DEVELOPER LAUNCHES
+// =====================================
+
+async function getDeveloperLaunches(wallet, limit = 5) {
+
+  const result = await pool.query(
+
+    `
+
+    SELECT *
+
+    FROM developer_launches
+
+    WHERE developer_wallet = $1
+
+    ORDER BY created_at DESC
+
+    LIMIT $2
+
+    `,
+
+    [wallet, limit]
+
+  );
+
+  return result.rows;
+
+}
+
+// =====================================
 // EXPORTS
 // =====================================
 
@@ -784,6 +812,10 @@ module.exports = {
 
   updateDeveloperStats,
 
-  getTopDevelopers
+  getTopDevelopers,
+
+  getDeveloper,
+
+  getDeveloperLaunches
 
 };
