@@ -167,8 +167,6 @@ if (
 
   await sendPaperTradeReport();
 
-  await sendDeveloperReport();
-
 }
 
 paperTrades.delete(contract);
@@ -239,7 +237,11 @@ const {
 
   updateDeveloperStats,
 
-  getTopDevelopers
+  getTopDevelopers,
+
+  getDeveloper,
+
+  getDeveloperLaunches
 
 } = require("./database");
 
@@ -709,52 +711,16 @@ ${uniqueDevelopers.length}
       const wallet =
         uniqueDevelopers[index];
 
-      const stats =
-        await pool.query(
-
-          `
-
-          SELECT *
-
-          FROM developers
-
-          WHERE developer_wallet = $1
-
-          `,
-
-          [wallet]
-
-        );
-
-      const launches =
-        await pool.query(
-
-          `
-
-          SELECT *
-
-          FROM developer_launches
-
-          WHERE developer_wallet = $1
-
-          ORDER BY created_at DESC
-
-          LIMIT 5
-
-          `,
-
-          [wallet]
-
-        );
-
       const dev =
-        stats.rows[0];
+  await getDeveloper(wallet);
 
-      const latest =
-        launches.rows[0];
+const launches =
+  await getDeveloperLaunches(wallet);
 
-      if (!dev || !latest)
-        continue;
+const latest = launches?.[0];
+
+if (!dev || !latest)
+  continue;
 
       const developerStatus =
 
@@ -802,7 +768,7 @@ ${dev.trust_score}/100
 
 `;
 
-    if (launches.rows.length <= 1) {
+    if (launches.length <= 1) {
 
   message +=
 `No previous launches yet.
@@ -811,8 +777,8 @@ ${dev.trust_score}/100
 
 } else {
 
-  launches.rows.slice(1).forEach((launch, i) => {
-
+  launches.slice(1).forEach((launch, i) => {
+    
     message +=
 
 `${i + 1}. ${launch.token_name || "Unknown"}
@@ -822,7 +788,7 @@ ${Number(launch.highest_gain || 0).toFixed(2)}%
 
 Highest MC:
 $${Math.round(
-launch.highest_market_cap || 0
+  launch.highest_market_cap || 0
 ).toLocaleString()}
 
 `;
@@ -832,18 +798,17 @@ launch.highest_market_cap || 0
 }
 
 message +=
-
 `-----------------------------
 
 `;
 
-    }
+} // <-- End of the for loop
 
-    await sendAlert(message);
+await sendAlert(message);
 
-    console.log(
-      "🧠 Developer Report Sent"
-    );
+console.log(
+  "🧠 Developer Report Sent"
+);
 
   } catch (error) {
 
