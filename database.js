@@ -345,8 +345,35 @@ async function saveDeveloperLaunch(trade) {
     console.log(
 
       `📚 Developer launch saved for ${trade.developerWallet}`
-
     );
+
+    const launches = await pool.query(
+
+  `
+
+  SELECT *
+
+  FROM developer_launches
+
+  WHERE developer_wallet = $1
+
+  ORDER BY created_at DESC
+
+  LIMIT 5
+
+  `,
+
+  [trade.developerWallet]
+
+);
+
+console.log(
+
+  `📖 ${trade.developerWallet} Launch History:`,
+
+  launches.rows
+
+);
 
   } catch (error) {
 
