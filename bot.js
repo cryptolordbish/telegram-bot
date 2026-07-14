@@ -815,7 +815,7 @@ ${dev.trust_score}/100
 
     message +=
 
-${i + 1}. ${launch.token_name || "Unknown"}
+`${i + 1}. ${launch.token_name || "Unknown"}
 
 Gain:
 ${Number(launch.highest_gain || 0).toFixed(2)}%
@@ -829,9 +829,9 @@ launch.highest_market_cap || 0
 
   });
 
- }     
-      
-      message +=
+}
+
+message +=
 
 `-----------------------------
 
