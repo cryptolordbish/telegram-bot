@@ -1082,13 +1082,8 @@ async function analyzeSafety(
   await rugCheck(contract);
 
 console.log(
-  "RugCheck Keys:",
-  Object.keys(rug)
-);
-
-console.log(
-  "TokenMeta:",
-  rug.tokenMeta
+  "FULL RUG OBJECT:",
+  JSON.stringify(rug, null, 2)
 );
 
 console.log(
