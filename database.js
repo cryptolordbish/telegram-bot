@@ -75,6 +75,18 @@ async function initializeDatabase() {
     "✅ completed_trades table ready"
   );
 
+  await pool.query(`
+
+ALTER TABLE completed_trades
+
+ADD COLUMN IF NOT EXISTS developer_wallet TEXT;
+
+`);
+
+console.log(
+  "✅ completed_trades developer_wallet column verified"
+);
+
   // =====================================
   // DEVELOPERS TABLE
   // =====================================
