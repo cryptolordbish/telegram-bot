@@ -1050,7 +1050,7 @@ function getSignal(score) {
     };
   }
 
-  if (score >= 50) {
+  if (score >= 72) {
 
     return {
       signal: "🟡 WATCHLIST",
