@@ -204,11 +204,11 @@ paperTrades.delete(contract);
 );
 
     await processToken(
-      token.contract,
-      token.tokenName,
-      token.tokenUrl,
-      true
-    );
+  token.contract,
+  token.tokenName,
+  token.tokenUrl,
+  token.migrationSignature
+);
   }
 }
 
