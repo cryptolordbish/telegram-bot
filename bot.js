@@ -99,8 +99,11 @@ else {
 
   contract,
 
-      developerWallet:
-  trade.developerWallet,
+  developerWallet:
+    trade.developerWallet,
+
+  feePayer:
+    trade.feePayer,
 
   tokenName:
     trade.tokenName,
@@ -442,11 +445,12 @@ async function paperBuy(
   contract,
   tokenName,
   developerWallet,
+  feePayer,
   price,
   marketCap,
   score,
   signal
-) {
+){
   
   if (
     paperTrades.has(contract)
@@ -462,6 +466,9 @@ async function paperBuy(
     
     developerWallet:
      developerWallet,
+
+    feePayer:
+      feePayer,
 
     entryPrice:
       Number(price),
@@ -1084,18 +1091,16 @@ Writable: ${account.writable}`
     );
 
     const feePayer =
-      tx.transaction.message.accountKeys.find(
-        account => account.signer
-      );
+  tx.transaction.message.accountKeys[0];
 
-    if (!feePayer) return null;
+if (!feePayer) return null;
 
-    console.log(
-      "Fee Payer:",
-      feePayer.pubkey.toString()
-    );
+console.log(
+  "Fee Payer:",
+  feePayer.pubkey.toString()
+);
 
-    return feePayer.pubkey.toString();
+return feePayer.pubkey.toString();
 
   } catch (error) {
 
@@ -1863,14 +1868,15 @@ if (
 if (score >= 75) {
 
   await paperBuy(
-    contract,
-    tokenName,
-    safety.developerWallet,
-    pair.priceUsd,
-    marketCap,
-    score,
-    result.signal
-  );
+  contract,
+  tokenName,
+  safety.developerWallet,
+  fundingWallet,
+  pair.priceUsd,
+  marketCap,
+  score,
+  result.signal
+);
 
 }
 
