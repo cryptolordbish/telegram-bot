@@ -33,6 +33,8 @@ async function initializeDatabase() {
 
     developer_wallet TEXT,
 
+    fee_payer TEXT,
+
     token_name TEXT,
 
     entry_price DOUBLE PRECISION,
@@ -143,6 +145,8 @@ id SERIAL PRIMARY KEY,
 
 developer_wallet TEXT,
 
+fee_payer TEXT,
+
 contract TEXT,
 
 token_name TEXT,
@@ -220,6 +224,7 @@ async function saveCompletedTrade(trade) {
 
         contract,
         developer_wallet,
+        fee_payer,
         token_name,
 
         entry_price,
@@ -246,29 +251,32 @@ async function saveCompletedTrade(trade) {
 
       VALUES (
 
-  $1,$2,$3,
+      $1,$2,$3,$4,
 
-  $4,$5,$6,
+      $5,$6,$7,
 
-  $7,$8,$9,
+      $8,$9,$10,
 
-  $10,$11,
+      $11,$12,
 
-  $12,$13,$14,
+      $13,$14,$15,
 
-  $15,$16,
+      $16,$17,
 
-  $17
+      $18
 
-)
+     )
+
+        
 
       `,
 
       [
-
-        trade.contract,
-        trade.developerWallet,
-        trade.tokenName,
+        
+       trade.contract,
+       trade.developerWallet,
+       trade.feePayer,
+       trade.tokenName,
 
         trade.entryPrice,
         trade.highestPrice,
@@ -325,6 +333,8 @@ async function saveDeveloperLaunch(trade) {
 
         developer_wallet,
 
+        fee_payer,
+
         contract,
 
         token_name,
@@ -345,23 +355,27 @@ async function saveDeveloperLaunch(trade) {
 
       VALUES (
 
-        $1,$2,$3,
+    $1,$2,$3,
 
-        $4,$5,
+    $4,$5,
 
-        $6,$7,
+    $6,$7,
 
-        $8,
+    $8,
 
-        $9
+    $9,
 
-      )
+    $10
+
+)
 
       `,
 
       [
 
         trade.developerWallet,
+
+        trade.feePayer,
 
         trade.contract,
 
