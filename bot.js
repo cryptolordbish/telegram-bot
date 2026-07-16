@@ -223,6 +223,13 @@ const axios = require("axios");
 const TelegramBot = require("node-telegram-bot-api");
 const WebSocket = require("ws");
 
+const { Connection } = require("@solana/web3.js");
+
+const connection = new Connection(
+  "https://api.mainnet-beta.solana.com",
+  "confirmed"
+);
+
 // =====================================
 // DATABASE
 // =====================================
@@ -1037,6 +1044,73 @@ function calculateScore(data) {
 }
 
 // =====================================
+// GET FUNDING WALLET
+// =====================================
+
+async function getFundingWallet(signature) {
+
+  if (!signature) return null;
+
+  try {
+
+    const tx = await connection.getParsedTransaction(
+      signature,
+      {
+        maxSupportedTransactionVersion: 0
+      }
+    );
+
+    if (!tx) return null;
+
+    console.log(
+      "========== TRANSACTION PARTICIPANTS =========="
+    );
+
+    tx.transaction.message.accountKeys.forEach(
+      (account, index) => {
+
+        console.log(
+
+          `${index}. ${account.pubkey.toString()}
+
+Signer: ${account.signer}
+
+Writable: ${account.writable}`
+
+        );
+
+      }
+
+    );
+
+    const feePayer =
+      tx.transaction.message.accountKeys.find(
+        account => account.signer
+      );
+
+    if (!feePayer) return null;
+
+    console.log(
+      "Fee Payer:",
+      feePayer.pubkey.toString()
+    );
+
+    return feePayer.pubkey.toString();
+
+  } catch (error) {
+
+    console.log(
+      "Funding Wallet Error:",
+      error.message
+    );
+
+    return null;
+
+  }
+
+}
+
+// =====================================
 // SIGNAL ENGINE
 // =====================================
 
@@ -1379,7 +1453,8 @@ return {
 async function processToken(
   contract,
   tokenName,
-  tokenUrl
+  tokenUrl,
+  migrationSignature = null
 ) {
 
   // DECLARE VARIABLES OUTSIDE TRY BLOCK
@@ -1396,8 +1471,16 @@ async function processToken(
   try {
 
     console.log(
-      `Processing ${tokenName} ${contract}`
-    );
+  `Processing ${tokenName} ${contract}`
+);
+
+const fundingWallet =
+  await getFundingWallet(migrationSignature);
+
+console.log(
+  "Funding Wallet:",
+  fundingWallet
+);
 
 // =====================================
 // WAIT FOR DEXSCREENER PAIR
@@ -1929,6 +2012,9 @@ function startPumpFun() {
     tokenUrl:
       `https://pump.fun/${contract}`,
 
+    migrationSignature:
+      token.signature,
+
     pairCreatedAt:
       Date.now(),
 
@@ -1943,7 +2029,7 @@ function startPumpFun() {
   }
 );
 
-  // =====================================
+ // =====================================
 // WAIT 2 MINUTES THEN PROCESS
 // =====================================
 
@@ -1951,14 +2037,16 @@ setTimeout(async () => {
 
   await processToken(
 
+  contract,
+
+  token.name ||
     contract,
 
-    token.name ||
-      contract,
+  `https://pump.fun/${contract}`,
 
-    `https://pump.fun/${contract}`
+  token.signature
 
-  );
+);
 
 }, 1000 * 60 * 2);
 
