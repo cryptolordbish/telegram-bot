@@ -1099,13 +1099,14 @@ Writable: ${account.writable}`
     );
 
     const feePayer =
-  tx.transaction.message.accountKeys[0];
+  tx.transaction.message.accountKeys.find(
+    account => account.signer
+  );
 
 if (!feePayer) return null;
 
 console.log(
-  "Fee Payer:",
-  feePayer.pubkey.toString()
+  `Fee Payer (${signature.slice(0,8)}...): ${feePayer.pubkey.toString()}`
 );
 
 return feePayer.pubkey.toString();
@@ -1491,8 +1492,7 @@ const fundingWallet =
   await getFundingWallet(migrationSignature);
 
 console.log(
-  "Funding Wallet:",
-  fundingWallet
+  `Funding Wallet for ${contract}: ${fundingWallet}`
 );
 
 // =====================================
