@@ -731,6 +731,14 @@ ${uniqueDevelopers.length}
 const launches =
   await getDeveloperLaunches(wallet);
 
+      console.log(
+  "Developer:",
+  wallet,
+  "Launches Found:",
+  launches.length,
+  launches.map(l => l.token_name)
+);
+
 const latest = launches?.[0];
 
 if (!dev || !latest)
