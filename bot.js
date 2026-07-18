@@ -1513,11 +1513,12 @@ if (!fundingWallet && migrationSignature) {
 
 }
 
-console.log(
-  "Funding Wallet:",
+console.log({
+  contract,
+  migrationSignature,
   fundingWallet
-);
-
+});
+    
 // =====================================
 // WAIT FOR DEXSCREENER PAIR
 // =====================================
@@ -1634,7 +1635,7 @@ if (!pair) {
       existing?.migratedAt,
 
     feePayer:
-      existing?.feePayer,
+      fundingWallet,
 
     lastChecked:
       existing?.lastChecked ??
