@@ -1488,11 +1488,34 @@ async function processToken(
   `Processing ${tokenName} ${contract}`
 );
 
-const fundingWallet =
-  await getFundingWallet(migrationSignature);
+const existing =
+  trackedTokens.get(contract);
+
+let fundingWallet =
+  existing?.feePayer;
+
+if (!fundingWallet && migrationSignature) {
+
+  fundingWallet =
+    await getFundingWallet(migrationSignature);
+
+  if (existing) {
+
+    trackedTokens.set(
+      contract,
+      {
+        ...existing,
+        feePayer: fundingWallet
+      }
+    );
+
+  }
+
+}
 
 console.log(
-  `Funding Wallet for ${contract}: ${fundingWallet}`
+  "Funding Wallet:",
+  fundingWallet
 );
 
 // =====================================
@@ -1598,7 +1621,7 @@ if (!pair) {
     const existing =
   trackedTokens.get(contract);
 
-trackedTokens.set(
+    trackedTokens.set(
   contract,
   {
     ...existing,
@@ -1612,6 +1635,9 @@ trackedTokens.set(
 
     migratedAt:
       existing?.migratedAt,
+
+    feePayer:
+      existing?.feePayer,
 
     lastChecked:
       existing?.lastChecked ??
