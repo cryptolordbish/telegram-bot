@@ -1618,9 +1618,6 @@ if (!pair) {
       return;
     }
 
-    const existing =
-  trackedTokens.get(contract);
-
     trackedTokens.set(
   contract,
   {
