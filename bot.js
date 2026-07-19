@@ -271,6 +271,11 @@ const bot = new TelegramBot(
 const CHAT_ID =
   process.env.TELEGRAM_CHAT_ID;
 
+const HELIUS_API_KEY = process.env.HELIUS_API_KEY;
+
+const HELIUS_URL =
+  "https://api.helius.xyz/v0";
+
 // =====================================
 // MEMORY
 // =====================================
@@ -1104,10 +1109,28 @@ async function findOriginalCreator(mint) {
 
   try {
 
-    // We'll use Helius to:
-    // 1. Find the original Pump.fun creation transaction.
-    // 2. Extract the creator wallet.
-    // 3. Return the creator address.
+    console.log(
+      `Searching creator for ${mint}`
+    );
+
+    const response = await axios.get(
+
+      `${HELIUS_URL}/addresses/${mint}/transactions`,
+
+      {
+        params: {
+          "api-key": HELIUS_API_KEY,
+          limit: 10
+        }
+      }
+
+    );
+
+    const transactions = response.data || [];
+
+    console.log(
+      `Transactions Found: ${transactions.length}`
+    );
 
     return null;
 
@@ -1115,7 +1138,7 @@ async function findOriginalCreator(mint) {
 
     console.log(
       "Find Creator Error:",
-      error.message
+      error.response?.data || error.message
     );
 
     return null;
@@ -1562,6 +1585,48 @@ if (!pair) {
 
 }
 
+// =====================================
+// FIND ORIGINAL TOKEN CREATOR
+// =====================================
+
+let originalCreator = null;
+
+try {
+
+  originalCreator =
+    await findOriginalCreator(contract);
+
+  if (originalCreator) {
+
+    console.log(
+      `Original Creator: ${originalCreator}`
+    );
+
+    const existing =
+      trackedTokens.get(contract);
+
+    if (existing) {
+
+      trackedTokens.set(
+        contract,
+        {
+          ...existing,
+          originalCreator
+        }
+      );
+
+    }
+
+  }
+
+} catch (error) {
+
+  console.log(
+    `Creator Lookup Failed: ${error.message}`
+  );
+
+}
+    
     // =====================================
     // TOKEN AGE
     // =====================================
