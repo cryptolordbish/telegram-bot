@@ -1100,7 +1100,27 @@ async function getFundingWallet(signature) {
 
 async function findOriginalCreator(mint) {
 
-  // We'll build this next.
+  if (!mint) return null;
+
+  try {
+
+    // We'll use Helius to:
+    // 1. Find the original Pump.fun creation transaction.
+    // 2. Extract the creator wallet.
+    // 3. Return the creator address.
+
+    return null;
+
+  } catch (error) {
+
+    console.log(
+      "Find Creator Error:",
+      error.message
+    );
+
+    return null;
+
+  }
 
 }
 
