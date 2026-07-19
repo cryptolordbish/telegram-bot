@@ -1078,47 +1078,10 @@ async function getFundingWallet(signature) {
     if (!tx) return null;
 
     // =====================================
-    // INNER INSTRUCTIONS
+    // CREATOR RESEARCH (TEMP DISABLED)
     // =====================================
-
-    console.log(
-      "========== INNER INSTRUCTIONS =========="
-    );
-
-    console.log(
-      JSON.stringify(
-        tx.meta?.innerInstructions,
-        null,
-        2
-      )
-    );
-
-    // =====================================
-    // PUMPFUN ACCOUNTS
-    // =====================================
-
-    for (const instruction of tx.transaction.message.instructions) {
-
-      if (
-        instruction.programId?.toString() ===
-        "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P"
-      ) {
-
-        console.log(
-          "========== PUMPFUN ACCOUNTS =========="
-        );
-
-        instruction.accounts.forEach((account, index) => {
-
-          console.log(`${index}: ${account}`);
-
-        });
-
-        return null;
-
-      }
-
-    }
+    // We'll revisit this after finding the
+    // original Pump.fun creation transaction.
 
     return null;
 
@@ -1134,6 +1097,30 @@ async function getFundingWallet(signature) {
   }
 
 }
+
+
+// =====================================
+// PUMPFUN CREATOR RESEARCH (TEMP)
+// =====================================
+
+for (const instruction of tx.transaction.message.instructions) {
+
+  if (
+    instruction.programId?.toString() ===
+    "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P"
+  ) {
+
+    // TODO:
+    // Extract creator from the original
+    // Pump.fun creation transaction.
+
+    return null;
+
+  }
+
+}
+
+return null;
 
 // =====================================
 // SIGNAL ENGINE
