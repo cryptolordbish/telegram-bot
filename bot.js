@@ -1077,51 +1077,29 @@ async function getFundingWallet(signature) {
 
     if (!tx) return null;
 
-    console.log(
-  JSON.stringify(
-    tx.transaction.message.instructions,
-    null,
-    2
-  )
-);
-
-// Look for the Pump.fun create instruction
-for (const instruction of tx.transaction.message.instructions) {
-
-  if (
-    instruction.programId?.toString() ===
-    "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P"
-  ) {
-
-    console.log("Pump.fun Instruction Found");
-
+    // Look for the Pump.fun instruction
     for (const instruction of tx.transaction.message.instructions) {
 
-  if (
-    instruction.programId.toString() ===
-    "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P"
-  ) {
+      if (
+        instruction.programId?.toString() ===
+        "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P"
+      ) {
 
-    console.log("========== PUMPFUN INSTRUCTION ==========");
-    console.log(
-      JSON.stringify(
-        instruction,
-        null,
-        2
-      )
-    );
+        console.log("========== PUMPFUN ACCOUNTS ==========");
 
-  }
+        instruction.accounts.forEach((account, index) => {
 
-}
-    
+          console.log(`${index}: ${account}`);
+
+        });
+
+        return null;
+
+      }
+
+    }
+
     return null;
-
-  }
-
-}
-
-return null;
 
   } catch (error) {
 
