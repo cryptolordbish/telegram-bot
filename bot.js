@@ -1095,6 +1095,14 @@ for (const instruction of tx.transaction.message.instructions) {
 
     console.log("Pump.fun Instruction Found");
 
+    for (const instruction of tx.transaction.message.instructions) {
+
+  if (
+    instruction.programId.toString() ===
+    "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P"
+  ) {
+
+    console.log("========== PUMPFUN INSTRUCTION ==========");
     console.log(
       JSON.stringify(
         instruction,
@@ -1103,6 +1111,10 @@ for (const instruction of tx.transaction.message.instructions) {
       )
     );
 
+  }
+
+}
+    
     return null;
 
   }
