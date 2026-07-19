@@ -1095,6 +1095,16 @@ async function getFundingWallet(signature) {
 }
 
 // =====================================
+// FIND ORIGINAL CREATOR
+// =====================================
+
+async function findOriginalCreator(mint) {
+
+  // We'll build this next.
+
+}
+
+// =====================================
 // SIGNAL ENGINE
 // =====================================
 
