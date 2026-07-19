@@ -1085,15 +1085,31 @@ async function getFundingWallet(signature) {
   )
 );
 
-    const feePayer =
-      tx.transaction.message.accountKeys.find(
-        account => account.signer
-      );
+// Look for the Pump.fun create instruction
+for (const instruction of tx.transaction.message.instructions) {
 
-    if (!feePayer) return null;
+  if (
+    instruction.programId?.toString() ===
+    "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P"
+  ) {
 
-    
-    return feePayer.pubkey.toString();
+    console.log("Pump.fun Instruction Found");
+
+    console.log(
+      JSON.stringify(
+        instruction,
+        null,
+        2
+      )
+    );
+
+    return null;
+
+  }
+
+}
+
+return null;
 
   } catch (error) {
 
