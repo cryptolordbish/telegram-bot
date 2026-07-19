@@ -1078,38 +1078,22 @@ async function getFundingWallet(signature) {
     if (!tx) return null;
 
     console.log(
-      "========== TRANSACTION PARTICIPANTS =========="
-    );
-
-    tx.transaction.message.accountKeys.forEach(
-      (account, index) => {
-
-        console.log(
-
-          `${index}. ${account.pubkey.toString()}
-
-Signer: ${account.signer}
-
-Writable: ${account.writable}`
-
-        );
-
-      }
-
-    );
-
-    const feePayer =
-  tx.transaction.message.accountKeys.find(
-    account => account.signer
-  );
-
-if (!feePayer) return null;
-
-console.log(
-  `Fee Payer (${signature.slice(0,8)}...): ${feePayer.pubkey.toString()}`
+  JSON.stringify(
+    tx.transaction.message.instructions,
+    null,
+    2
+  )
 );
 
-return feePayer.pubkey.toString();
+    const feePayer =
+      tx.transaction.message.accountKeys.find(
+        account => account.signer
+      );
+
+    if (!feePayer) return null;
+
+    
+    return feePayer.pubkey.toString();
 
   } catch (error) {
 
@@ -1166,45 +1150,21 @@ async function analyzeSafety(
     `${contract}: Running Safety`
   );
 
-  const rug =
+ const rug =
   await rugCheck(contract);
 
-console.log(
-  "FULL RUG OBJECT:",
-  JSON.stringify(rug, null, 2)
-);
+if (!rug) {
 
-console.log(
-  "Creator:",
-  rug.creator
-);
+  console.log(
+    `${contract}: No RugCheck Data`
+  );
 
-console.log(
-  "Creator Address:",
-  rug.creatorAddress
-);
+  return {
+    safe: false,
+    reason: "No RugCheck"
+  };
 
-console.log(
-  "Owner:",
-  rug.owner
-);
-
-console.log(
-  "Deployer:",
-  rug.deployer
-);
-
-  if (!rug) {
-
-    console.log(
-      `${contract}: No RugCheck Data`
-    );
-
-    return {
-      safe: false,
-      reason: "No RugCheck"
-    };
-  }
+}
 
   // =====================================
   // LP LOCK
@@ -1513,12 +1473,6 @@ if (!fundingWallet && migrationSignature) {
 
 }
 
-console.log({
-  contract,
-  migrationSignature,
-  fundingWallet
-});
-    
 // =====================================
 // WAIT FOR DEXSCREENER PAIR
 // =====================================
