@@ -1094,31 +1094,6 @@ async function getFundingWallet(signature) {
 
 }
 
-
-
-// =====================================
-// PUMPFUN CREATOR RESEARCH (TEMP)
-// =====================================
-
-for (const instruction of tx.transaction.message.instructions) {
-
-  if (
-    instruction.programId?.toString() ===
-    "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P"
-  ) {
-
-    // TODO:
-    // Extract creator from the original
-    // Pump.fun creation transaction.
-
-    return null;
-
-  }
-
-}
-
-return null;
-
 // =====================================
 // SIGNAL ENGINE
 // =====================================
