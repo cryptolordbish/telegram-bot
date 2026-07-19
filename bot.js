@@ -1077,11 +1077,7 @@ async function getFundingWallet(signature) {
 
     if (!tx) return null;
 
-    // =====================================
-    // CREATOR RESEARCH (TEMP DISABLED)
-    // =====================================
-    // We'll revisit this after finding the
-    // original Pump.fun creation transaction.
+    // Creator research temporarily disabled.
 
     return null;
 
@@ -1097,6 +1093,7 @@ async function getFundingWallet(signature) {
   }
 
 }
+
 
 
 // =====================================
