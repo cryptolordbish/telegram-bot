@@ -1077,7 +1077,26 @@ async function getFundingWallet(signature) {
 
     if (!tx) return null;
 
-    // Look for the Pump.fun instruction
+    // =====================================
+    // INNER INSTRUCTIONS
+    // =====================================
+
+    console.log(
+      "========== INNER INSTRUCTIONS =========="
+    );
+
+    console.log(
+      JSON.stringify(
+        tx.meta?.innerInstructions,
+        null,
+        2
+      )
+    );
+
+    // =====================================
+    // PUMPFUN ACCOUNTS
+    // =====================================
+
     for (const instruction of tx.transaction.message.instructions) {
 
       if (
@@ -1085,7 +1104,9 @@ async function getFundingWallet(signature) {
         "6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P"
       ) {
 
-        console.log("========== PUMPFUN ACCOUNTS ==========");
+        console.log(
+          "========== PUMPFUN ACCOUNTS =========="
+        );
 
         instruction.accounts.forEach((account, index) => {
 
