@@ -281,6 +281,12 @@ const HELIUS_URL =
   "https://api.helius.xyz/v0";
 
 // =====================================
+// FEATURES
+// =====================================
+
+const ENABLE_CREATOR_LOOKUP = false;
+
+// =====================================
 // MEMORY
 // =====================================
 
@@ -1634,10 +1640,9 @@ if (!pair) {
 // FIND ORIGINAL TOKEN CREATOR
 // =====================================
 
-let originalCreator =
-  existing?.originalCreator || null;
+let originalCreator = existing?.originalCreator || null;
 
-if (!originalCreator) {
+if (ENABLE_CREATOR_LOOKUP && !originalCreator) {
 
   try {
 
