@@ -90,6 +90,28 @@ console.log(
 );
 
   // =====================================
+// CREATOR CACHE TABLE
+// =====================================
+
+await pool.query(`
+
+CREATE TABLE IF NOT EXISTS creator_cache (
+
+    mint TEXT PRIMARY KEY,
+
+    creator TEXT NOT NULL,
+
+    created_at TIMESTAMP DEFAULT NOW()
+
+);
+
+`);
+
+console.log(
+  "✅ creator_cache table ready"
+);
+
+  // =====================================
   // DEVELOPERS TABLE
   // =====================================
 
@@ -823,6 +845,63 @@ async function getDeveloperLaunches(wallet, limit = 5) {
 }
 
 // =====================================
+// GET CACHED CREATOR
+// =====================================
+
+async function getCachedCreator(mint) {
+
+  const result = await pool.query(
+
+    `
+
+    SELECT creator
+
+    FROM creator_cache
+
+    WHERE mint = $1
+
+    LIMIT 1
+
+    `,
+
+    [mint]
+
+  );
+
+  if (result.rows.length === 0)
+    return null;
+
+  return result.rows[0].creator;
+
+}
+
+// =====================================
+// SAVE CACHED CREATOR
+// =====================================
+
+async function saveCachedCreator(mint, creator) {
+
+  await pool.query(
+
+    `
+
+    INSERT INTO creator_cache
+    (mint, creator)
+
+    VALUES ($1, $2)
+
+    ON CONFLICT (mint)
+    DO NOTHING
+
+    `,
+
+    [mint, creator]
+
+  );
+
+}
+
+// =====================================
 // EXPORTS
 // =====================================
 
@@ -842,6 +921,10 @@ module.exports = {
 
   getDeveloper,
 
-  getDeveloperLaunches
+  getDeveloperLaunches,
+
+  getCachedCreator,
+
+  saveCachedCreator
 
 };
