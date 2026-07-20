@@ -1136,10 +1136,19 @@ async function findOriginalCreator(mint) {
 
   } catch (error) {
 
-    console.log(
-      "Find Creator Error:",
-      error.response?.data || error.message
-    );
+   console.log(
+  "Status:",
+  error.response?.status
+);
+
+console.log(
+  "Data:",
+  JSON.stringify(
+    error.response?.data,
+    null,
+    2
+  )
+);
 
     return null;
 
