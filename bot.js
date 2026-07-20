@@ -1079,33 +1079,7 @@ function calculateScore(data) {
 
 async function getFundingWallet(signature) {
 
-  if (!signature) return null;
-
-  try {
-
-    const tx = await connection.getParsedTransaction(
-      signature,
-      {
-        maxSupportedTransactionVersion: 0
-      }
-    );
-
-    if (!tx) return null;
-
-    // Creator research temporarily disabled.
-
-    return null;
-
-  } catch (error) {
-
-    console.log(
-      "Funding Wallet Error:",
-      error.message
-    );
-
-    return null;
-
-  }
+  return null;
 
 }
 
