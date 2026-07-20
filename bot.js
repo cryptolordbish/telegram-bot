@@ -1598,44 +1598,40 @@ if (!pair) {
 // FIND ORIGINAL TOKEN CREATOR
 // =====================================
 
-let originalCreator = null;
+const existing = trackedTokens.get(contract);
 
-try {
+let originalCreator = existing?.originalCreator || null;
 
-  originalCreator =
-    await findOriginalCreator(contract);
+if (!originalCreator) {
 
-  if (originalCreator) {
+  try {
 
-    console.log(
-      `Original Creator: ${originalCreator}`
-    );
+    originalCreator =
+      await findOriginalCreator(contract);
 
-    const existing =
-      trackedTokens.get(contract);
+    if (originalCreator && existing) {
 
-    if (existing) {
-
-      trackedTokens.set(
-        contract,
-        {
-          ...existing,
-          originalCreator
-        }
+      console.log(
+        `Original Creator: ${originalCreator}`
       );
 
+      trackedTokens.set(contract, {
+  ...existing,
+  originalCreator
+});
+      
     }
+
+  } catch (error) {
+
+    console.log(
+      `Creator Lookup Failed: ${error.message}`
+    );
 
   }
 
-} catch (error) {
-
-  console.log(
-    `Creator Lookup Failed: ${error.message}`
-  );
-
 }
-    
+
     // =====================================
     // TOKEN AGE
     // =====================================
