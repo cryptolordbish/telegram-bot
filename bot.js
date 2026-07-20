@@ -1598,9 +1598,8 @@ if (!pair) {
 // FIND ORIGINAL TOKEN CREATOR
 // =====================================
 
-const existing = trackedTokens.get(contract);
-
-let originalCreator = existing?.originalCreator || null;
+let originalCreator =
+  existing?.originalCreator || null;
 
 if (!originalCreator) {
 
@@ -1615,11 +1614,14 @@ if (!originalCreator) {
         `Original Creator: ${originalCreator}`
       );
 
-      trackedTokens.set(contract, {
-  ...existing,
-  originalCreator
-});
-      
+      trackedTokens.set(
+        contract,
+        {
+          ...existing,
+          originalCreator
+        }
+      );
+
     }
 
   } catch (error) {
@@ -1631,7 +1633,7 @@ if (!originalCreator) {
   }
 
 }
-
+    
     // =====================================
     // TOKEN AGE
     // =====================================
