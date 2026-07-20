@@ -251,7 +251,11 @@ const {
 
   getDeveloper,
 
-  getDeveloperLaunches
+  getDeveloperLaunches,
+
+  getCachedCreator,
+
+  saveCachedCreator
 
 } = require("./database");
 
@@ -1107,6 +1111,23 @@ async function findOriginalCreator(mint) {
 
   if (!mint) return null;
 
+  // =====================================
+  // CHECK DATABASE CACHE FIRST
+  // =====================================
+
+  const cachedCreator =
+    await getCachedCreator(mint);
+
+  if (cachedCreator) {
+
+    console.log(
+      `Creator Cache Hit: ${cachedCreator}`
+    );
+
+    return cachedCreator;
+
+  }
+
   try {
 
     console.log(
@@ -1126,29 +1147,44 @@ async function findOriginalCreator(mint) {
 
     );
 
-    const transactions = response.data || [];
+    const transactions =
+      response.data || [];
+
+    console.log(
+  JSON.stringify(
+    transactions[0],
+    null,
+    2
+  )
+);
 
     console.log(
       `Transactions Found: ${transactions.length}`
     );
 
-    return null;
+    // =====================================
+    // We'll extract the creator next.
+    // =====================================
+
+    const creator = null;
+
+    if (creator) {
+
+      await saveCachedCreator(
+        mint,
+        creator
+      );
+
+    }
+
+    return creator;
 
   } catch (error) {
 
-   console.log(
-  "Status:",
-  error.response?.status
-);
-
-console.log(
-  "Data:",
-  JSON.stringify(
-    error.response?.data,
-    null,
-    2
-  )
-);
+    console.log(
+      "Find Creator Error:",
+      error.response?.data || error.message
+    );
 
     return null;
 
