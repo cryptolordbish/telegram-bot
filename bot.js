@@ -255,7 +255,11 @@ const {
 
   getCachedCreator,
 
-  saveCachedCreator
+  saveCachedCreator,
+
+  getCachedFundingWallet,
+
+  saveCachedFundingWallet
 
 } = require("./database");
 
@@ -1077,93 +1081,66 @@ function calculateScore(data) {
 // GET FUNDING WALLET
 // =====================================
 
-async function getFundingWallet(signature) {
+async function getFundingWallet(
+  mint,
+  signature
+) {
 
-  return null;
-
-}
-
-// =====================================
-// FIND ORIGINAL CREATOR
-// =====================================
-
-async function findOriginalCreator(mint) {
-
-  if (!mint) return null;
+  if (!mint || !signature)
+    return null;
 
   // =====================================
   // CHECK DATABASE CACHE FIRST
   // =====================================
 
-  const cachedCreator =
-    await getCachedCreator(mint);
+  const cachedFeePayer =
+    await getCachedFundingWallet(mint);
 
-  if (cachedCreator) {
+  if (cachedFeePayer) {
 
     console.log(
-      `Creator Cache Hit: ${cachedCreator}`
+      `Funding Cache Hit: ${cachedFeePayer}`
     );
 
-    return cachedCreator;
+    return cachedFeePayer;
 
   }
 
   try {
 
-    console.log(
-      `Searching creator for ${mint}`
-    );
-
-    const response = await axios.get(
-
-      `${HELIUS_URL}/addresses/${mint}/transactions`,
-
-      {
-        params: {
-          "api-key": HELIUS_API_KEY,
-          limit: 10
+    const tx =
+      await connection.getParsedTransaction(
+        signature,
+        {
+          maxSupportedTransactionVersion: 0
         }
-      }
+      );
 
-    );
-
-    const transactions =
-      response.data || [];
-
-    console.log(
-  JSON.stringify(
-    transactions[0],
-    null,
-    2
-  )
-);
-
-    console.log(
-      `Transactions Found: ${transactions.length}`
-    );
+    if (!tx)
+      return null;
 
     // =====================================
-    // We'll extract the creator next.
+    // We'll extract the fee payer next.
     // =====================================
 
-    const creator = null;
+    const feePayer = null;
 
-    if (creator) {
+    if (feePayer) {
 
-      await saveCachedCreator(
+      await saveCachedFundingWallet(
         mint,
-        creator
+        feePayer
       );
 
     }
 
-    return creator;
+    return feePayer;
 
   } catch (error) {
 
     console.log(
-      "Find Creator Error:",
-      error.response?.data || error.message
+      "Funding Wallet Error:",
+      error.message
     );
 
     return null;
@@ -1516,22 +1493,32 @@ const existing =
   trackedTokens.get(contract);
 
 let fundingWallet =
-  existing?.feePayer;
-
+  tokenData.feePayer;
+    
 if (!fundingWallet && migrationSignature) {
 
-  fundingWallet =
-    await getFundingWallet(migrationSignature);
+ fundingWallet =
+  await getFundingWallet(
+    contract,
+    migrationSignature
+  );
 
   if (existing) {
 
-    trackedTokens.set(
-      contract,
-      {
-        ...existing,
-        feePayer: fundingWallet
-      }
-    );
+   trackedTokens.set(
+  contract,
+  {
+    ...tokenData,
+    feePayer: fundingWallet
+  }
+);
+
+tokenData =
+  trackedTokens.get(contract);
+
+// Refresh from memory
+const updatedToken =
+  trackedTokens.get(contract);
 
   }
 
@@ -1614,7 +1601,8 @@ if (!pair) {
 // FIND ORIGINAL TOKEN CREATOR
 // =====================================
 
-let originalCreator = existing?.originalCreator || null;
+let originalCreator =
+  tokenData.originalCreator || null;
 
 if (ENABLE_CREATOR_LOOKUP && !originalCreator) {
 
@@ -1676,30 +1664,19 @@ if (ENABLE_CREATOR_LOOKUP && !originalCreator) {
       return;
     }
 
-    trackedTokens.set(
+ trackedTokens.set(
   contract,
   {
-    ...existing,
-
+    ...tokenData,
     contract,
     tokenName,
     tokenUrl,
-
-    pairCreatedAt:
-      pair.pairCreatedAt,
-
-    migratedAt:
-      existing?.migratedAt,
-
-    feePayer:
-      fundingWallet,
-
-    lastChecked:
-      existing?.lastChecked ??
-      Date.now(),
-
-    lastSignal:
-      existing?.lastSignal
+    pairCreatedAt: pair.pairCreatedAt,
+    migratedAt: tokenData.migratedAt,
+    feePayer: fundingWallet,
+    originalCreator,
+    lastChecked: tokenData.lastChecked ?? Date.now(),
+    lastSignal: tokenData.lastSignal
   }
 );
 
