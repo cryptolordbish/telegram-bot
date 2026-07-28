@@ -1086,73 +1086,83 @@ async function getFundingWallet(
   signature
 ) {
 
-  if (!mint || !signature)
-    return null;
+  ...
+
+}
+
+// =====================================
+// FIND ORIGINAL CREATOR
+// =====================================
+
+async function findOriginalCreator(mint) {
+
+  if (!mint) return null;
 
   // =====================================
   // CHECK DATABASE CACHE FIRST
   // =====================================
 
-  const cachedFeePayer =
-    await getCachedFundingWallet(mint);
+  const cachedCreator =
+    await getCachedCreator(mint);
 
-  if (cachedFeePayer) {
+  if (cachedCreator) {
 
     console.log(
-      `Funding Cache Hit: ${cachedFeePayer}`
+      `Creator Cache Hit: ${cachedCreator}`
     );
 
-    return cachedFeePayer;
+    return cachedCreator;
 
   }
 
   try {
 
-    const tx =
-      await connection.getParsedTransaction(
-        signature,
-        {
-          maxSupportedTransactionVersion: 0
+    console.log(
+      `Searching creator for ${mint}`
+    );
+
+    const response = await axios.get(
+
+      `${HELIUS_URL}/addresses/${mint}/transactions`,
+
+      {
+        params: {
+          "api-key": HELIUS_API_KEY,
+          limit: 10
         }
-      );
+      }
 
-    if (!tx)
-      return null;
+    );
 
-    // =====================================
-    // TEMPORARY DEBUG
-    // =====================================
+    const transactions =
+      response.data || [];
 
     console.log(
-      JSON.stringify(
-        tx,
-        null,
-        2
-      )
+      transactions[0]
     );
 
     // =====================================
-    // We'll extract the fee payer next.
+    // We'll extract the creator next.
     // =====================================
 
-    const feePayer = null;
+    const creator = null;
 
-    if (feePayer) {
+    if (creator) {
 
-      await saveCachedFundingWallet(
+      await saveCachedCreator(
         mint,
-        feePayer
+        creator
       );
 
     }
 
-    return feePayer;
+    return creator;
 
   } catch (error) {
 
     console.log(
-      "Funding Wallet Error:",
-      error.message
+      "Find Creator Error:",
+      error.response?.data || error.message
     );
 
     return null;
