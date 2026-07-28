@@ -1086,8 +1086,6 @@ async function getFundingWallet(
   signature
 ) {
 
-  ...
-
 }
 
 // =====================================
