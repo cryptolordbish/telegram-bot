@@ -89,7 +89,7 @@ console.log(
   "✅ completed_trades developer_wallet column verified"
 );
 
-  // =====================================
+// =====================================
 // CREATOR CACHE TABLE
 // =====================================
 
@@ -110,6 +110,29 @@ CREATE TABLE IF NOT EXISTS creator_cache (
 console.log(
   "✅ creator_cache table ready"
 );
+
+// =====================================
+// FUNDING WALLET CACHE TABLE
+// =====================================
+
+await pool.query(`
+
+CREATE TABLE IF NOT EXISTS funding_wallet_cache (
+
+    mint TEXT PRIMARY KEY,
+
+    fee_payer TEXT NOT NULL,
+
+    created_at TIMESTAMP DEFAULT NOW()
+
+);
+
+`);
+
+console.log(
+  "✅ funding_wallet_cache table ready"
+);  
+
 
   // =====================================
   // DEVELOPERS TABLE
@@ -886,16 +909,88 @@ async function saveCachedCreator(mint, creator) {
     `
 
     INSERT INTO creator_cache
+
     (mint, creator)
 
     VALUES ($1, $2)
 
     ON CONFLICT (mint)
-    DO NOTHING
+
+    DO UPDATE SET
+
+      creator = EXCLUDED.creator,
+
+      created_at = NOW()
 
     `,
 
     [mint, creator]
+
+  );
+
+}
+
+// =====================================
+// GET CACHED FUNDING WALLET
+// =====================================
+
+async function getCachedFundingWallet(mint) {
+
+  const result = await pool.query(
+
+    `
+
+    SELECT fee_payer
+
+    FROM funding_wallet_cache
+
+    WHERE mint = $1
+
+    LIMIT 1
+
+    `,
+
+    [mint]
+
+  );
+
+  if (result.rows.length === 0)
+    return null;
+
+  return result.rows[0].fee_payer;
+
+}
+
+// =====================================
+// SAVE CACHED FUNDING WALLET
+// =====================================
+
+async function saveCachedFundingWallet(
+  mint,
+  feePayer
+) {
+
+  await pool.query(
+
+    `
+
+    INSERT INTO funding_wallet_cache
+
+    (mint, fee_payer)
+
+    VALUES ($1, $2)
+
+    ON CONFLICT (mint)
+
+    DO UPDATE SET
+
+      fee_payer = EXCLUDED.fee_payer,
+
+      created_at = NOW()
+
+    `,
+
+    [mint, feePayer]
 
   );
 
@@ -925,6 +1020,10 @@ module.exports = {
 
   getCachedCreator,
 
-  saveCachedCreator
+  saveCachedCreator,
+
+  getCachedFundingWallet,
+
+  saveCachedFundingWallet
 
 };
