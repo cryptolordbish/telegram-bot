@@ -1486,199 +1486,218 @@ async function processToken(
   try {
 
     console.log(
-  `Processing ${tokenName} ${contract}`
-);
-
-const existing =
-  trackedTokens.get(contract);
-
-let fundingWallet =
-  tokenData.feePayer;
-    
-if (!fundingWallet && migrationSignature) {
-
- fundingWallet =
-  await getFundingWallet(
-    contract,
-    migrationSignature
-  );
-
-  if (existing) {
-
-   trackedTokens.set(
-  contract,
-  {
-    ...tokenData,
-    feePayer: fundingWallet
-  }
-);
-
-tokenData =
-  trackedTokens.get(contract);
-
-// Refresh from memory
-const updatedToken =
-  trackedTokens.get(contract);
-
-  }
-
-}
-
-// =====================================
-// WAIT FOR DEXSCREENER PAIR
-// =====================================
-
-for (
-  let attempt = 1;
-  attempt <= 6;
-  attempt++
-) {
-
-  try {
-
-    const pairResponse =
-      await axios.get(
-        `https://api.dexscreener.com/latest/dex/search?q=${contract}`
-      );
-
-    const pairs =
-      pairResponse.data?.pairs || [];
-
-    pair =
-      pairs.find(
-        (p) =>
-
-          p.chainId ===
-            "solana" &&
-
-          p.liquidity?.usd > 0
-      );
-
-    if (pair) {
-
-      console.log(
-        `${contract}: Pair Found`
-      );
-
-      break;
-
-    }
-
-    console.log(
-      `${contract}: Pair not ready (${attempt}/6)`
+      `Processing ${tokenName} ${contract}`
     );
 
-  } catch (error) {
+    // =====================================
+    // TOKEN MEMORY
+    // =====================================
 
-    console.log(
-      `${contract}: DexScreener request failed (${attempt}/6)`
-    );
+    let tokenData =
+      trackedTokens.get(contract) || {};
 
-  }
+    // =====================================
+    // FUNDING WALLET
+    // =====================================
 
-  // Wait 5 seconds before retrying
-  await new Promise(
-    resolve =>
-      setTimeout(
-        resolve,
-        5000
-      )
-  );
+    let fundingWallet =
+      tokenData.feePayer || null;
 
-}
+    if (!fundingWallet && migrationSignature) {
 
-if (!pair) {
+      fundingWallet =
+        await getFundingWallet(
+          contract,
+          migrationSignature
+        );
 
-  console.log(
-    `${contract}: Pair not found after 30 seconds`
-  );
-
-  return;
-
-}
-
-// =====================================
-// FIND ORIGINAL TOKEN CREATOR
-// =====================================
-
-let originalCreator =
-  tokenData.originalCreator || null;
-
-if (ENABLE_CREATOR_LOOKUP && !originalCreator) {
-
-  try {
-
-    originalCreator =
-      await findOriginalCreator(contract);
-
-    if (originalCreator && existing) {
-
-      console.log(
-        `Original Creator: ${originalCreator}`
-      );
+      tokenData = {
+        ...tokenData,
+        feePayer: fundingWallet
+      };
 
       trackedTokens.set(
         contract,
-        {
-          ...existing,
-          originalCreator
-        }
+        tokenData
       );
 
     }
 
-  } catch (error) {
+    // =====================================
+    // WAIT FOR DEXSCREENER PAIR
+    // =====================================
 
-    console.log(
-      `Creator Lookup Failed: ${error.message}`
-    );
+    for (
+      let attempt = 1;
+      attempt <= 6;
+      attempt++
+    ) {
 
-  }
+      try {
 
-}
-    
+        const pairResponse =
+          await axios.get(
+            `https://api.dexscreener.com/latest/dex/search?q=${contract}`
+          );
+
+        const pairs =
+          pairResponse.data?.pairs || [];
+
+        pair =
+          pairs.find(
+            (p) =>
+
+              p.chainId ===
+                "solana" &&
+
+              p.liquidity?.usd > 0
+          );
+
+        if (pair) {
+
+          console.log(
+            `${contract}: Pair Found`
+          );
+
+          break;
+
+        }
+
+        console.log(
+          `${contract}: Pair not ready (${attempt}/6)`
+        );
+
+      } catch (error) {
+
+        console.log(
+          `${contract}: DexScreener request failed (${attempt}/6)`
+        );
+
+      }
+
+      await new Promise(
+        resolve =>
+          setTimeout(
+            resolve,
+            5000
+          )
+      );
+
+    }
+
+    if (!pair) {
+
+      console.log(
+        `${contract}: Pair not found after 30 seconds`
+      );
+
+      return;
+
+    }
+
+    // =====================================
+    // FIND ORIGINAL TOKEN CREATOR
+    // =====================================
+
+    let originalCreator =
+      tokenData.originalCreator || null;
+
+    if (
+      ENABLE_CREATOR_LOOKUP &&
+      !originalCreator
+    ) {
+
+      try {
+
+        originalCreator =
+          await findOriginalCreator(
+            contract
+          );
+
+        if (originalCreator) {
+
+          console.log(
+            `Original Creator: ${originalCreator}`
+          );
+
+          tokenData = {
+            ...tokenData,
+            originalCreator
+          };
+
+          trackedTokens.set(
+            contract,
+            tokenData
+          );
+
+        }
+
+      } catch (error) {
+
+        console.log(
+          `Creator Lookup Failed: ${error.message}`
+        );
+
+      }
+
+    }
+
     // =====================================
     // TOKEN AGE
     // =====================================
 
     const ageMinutes =
-     (Date.now() - pair.pairCreatedAt)
-     / 1000 / 60;
+      (Date.now() - pair.pairCreatedAt) /
+      1000 /
+      60;
 
     if (
-     ageMinutes <
-     CONFIG.MIN_TOKEN_AGE_MINUTES
+      ageMinutes <
+      CONFIG.MIN_TOKEN_AGE_MINUTES
     ) {
-     return;
-   }
+      return;
+    }
 
     if (
-     ageMinutes >
-     CONFIG.MAX_TOKEN_AGE_MINUTES
+      ageMinutes >
+      CONFIG.MAX_TOKEN_AGE_MINUTES
     ) {
 
       trackedTokens.delete(
         contract
       );
- 
+
       return;
+
     }
 
- trackedTokens.set(
-  contract,
-  {
-    ...tokenData,
-    contract,
-    tokenName,
-    tokenUrl,
-    pairCreatedAt: pair.pairCreatedAt,
-    migratedAt: tokenData.migratedAt,
-    feePayer: fundingWallet,
-    originalCreator,
-    lastChecked: tokenData.lastChecked ?? Date.now(),
-    lastSignal: tokenData.lastSignal
-  }
-);
+    // =====================================
+    // UPDATE MEMORY
+    // =====================================
+
+    tokenData = {
+      ...tokenData,
+      contract,
+      tokenName,
+      tokenUrl,
+      pairCreatedAt:
+        pair.pairCreatedAt,
+      migratedAt:
+        tokenData.migratedAt,
+      feePayer:
+        fundingWallet,
+      originalCreator,
+      lastChecked:
+        tokenData.lastChecked ??
+        Date.now(),
+      lastSignal:
+        tokenData.lastSignal
+    };
+
+    trackedTokens.set(
+      contract,
+      tokenData
+    );
 
 // =====================================
 // MARKET DATA
