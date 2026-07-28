@@ -288,7 +288,7 @@ const HELIUS_URL =
 // FEATURES
 // =====================================
 
-const ENABLE_CREATOR_LOOKUP = true;
+const ENABLE_CREATOR_LOOKUP = false;
 
 // =====================================
 // MEMORY
