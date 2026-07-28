@@ -1120,6 +1120,18 @@ async function getFundingWallet(
       return null;
 
     // =====================================
+    // TEMPORARY DEBUG
+    // =====================================
+
+    console.log(
+      JSON.stringify(
+        tx,
+        null,
+        2
+      )
+    );
+
+    // =====================================
     // We'll extract the fee payer next.
     // =====================================
 
