@@ -1096,38 +1096,60 @@ async function findOriginalCreator(mint) {
 
   if (!mint) return null;
 
+// =====================================
+// CHECK DATABASE CACHE FIRST
+// =====================================
+
+const cachedCreator =
+  await getCachedCreator(mint);
+
+if (cachedCreator) {
+
+  console.log(
+    `Creator Cache Hit: ${cachedCreator}`
+  );
+
+  return cachedCreator;
+
+}
+
+try {
+
+  console.log(
+    `Searching creator for ${mint}`
+  );
+
+  let pages = 0;
+
+  const MAX_PAGES = 20;
+
+  let before = null;
+
+  let oldestTx = null;
+
   // =====================================
-  // CHECK DATABASE CACHE FIRST
+  // TRANSACTION TYPES THAT INDICATE
+  // TOKEN CREATION
   // =====================================
 
-  const cachedCreator =
-    await getCachedCreator(mint);
+  const CREATION_TYPES = [
 
-  if (cachedCreator) {
+    "CREATE",
 
-    console.log(
-      `Creator Cache Hit: ${cachedCreator}`
-    );
+    "CREATE_POOL",
 
-    return cachedCreator;
+    "INITIALIZE_MINT",
 
-  }
+    "INITIALIZE_ACCOUNT",
 
-  try {
+    "MINT"
 
-    console.log(
-      `Searching creator for ${mint}`
-    );
+  ];
 
-    let pages = 0;
-      const MAX_PAGES = 20;
+  while (pages < MAX_PAGES) {
 
-    let before = null;
-    let oldestTx = null;
-
-   while (pages < MAX_PAGES) {
-
-      const response = await axios.get(
+    const response =
+      await axios.get(
 
         `${HELIUS_URL}/addresses/${mint}/transactions`,
 
@@ -1141,86 +1163,106 @@ async function findOriginalCreator(mint) {
 
       );
 
-      const transactions =
-        response.data || [];
-        pages++;
+    const transactions =
+      response.data || [];
 
-     console.log(
-      `Scanning Page ${pages}`
-   );
-
-      if (!transactions.length)
-        break;
-
-      // =====================================
-      // SAVE THE OLDEST TX OF THIS PAGE
-      // =====================================
-
-      oldestTx =
-        transactions[
-          transactions.length - 1
-        ];
-
-      console.log(
-        `Fetched ${transactions.length} transactions`
-      );
-
-      // =====================================
-      // DEBUG
-      // =====================================
-
-      console.log(
-        `Oldest Type: ${oldestTx.type}`
-      );
-
-      console.log(
-        `Oldest Source: ${oldestTx.source}`
-      );
-
-      console.log(
-        `Oldest Fee Payer: ${oldestTx.feePayer}`
-      );
-
-      // =====================================
-      // NEXT PAGE
-      // =====================================
-
-      before =
-        oldestTx.signature;
-
-    }
-
-    const creator =
-      oldestTx?.feePayer || null;
-
-    if (creator) {
-
-      console.log(
-        `Original Creator Found: ${creator}`
-      );
-
-      await saveCachedCreator(
-        mint,
-        creator
-      );
-
-    }
-
-    return creator;
-
-  } catch (error) {
+    pages++;
 
     console.log(
-      "Find Creator Error:",
-      error.response?.data || error.message
+      `Scanning Page ${pages}`
     );
 
-    return null;
+    if (!transactions.length)
+      break;
+
+    // =====================================
+    // SAVE THE OLDEST TX OF THIS PAGE
+    // =====================================
+
+    oldestTx =
+      transactions[
+        transactions.length - 1
+      ];
+
+    console.log(
+      `Fetched ${transactions.length} transactions`
+    );
+
+    // =====================================
+    // DEBUG
+    // =====================================
+
+    console.log(
+      `Oldest Type: ${oldestTx.type}`
+    );
+
+    console.log(
+      `Oldest Source: ${oldestTx.source}`
+    );
+
+    console.log(
+      `Oldest Fee Payer: ${oldestTx.feePayer}`
+    );
+
+    // =====================================
+    // STOP WHEN CREATION TX IS FOUND
+    // =====================================
+
+    if (
+
+      CREATION_TYPES.includes(
+        oldestTx.type
+      )
+
+    ) {
+
+      console.log(
+        `Creation transaction found (${oldestTx.type})`
+      );
+
+      break;
+
+    }
+
+    // =====================================
+    // NEXT PAGE
+    // =====================================
+
+    before =
+      oldestTx.signature;
 
   }
 
-}
+  const creator =
+    oldestTx?.feePayer || null;
 
+  if (creator) {
+
+    console.log(
+      `Original Creator Found: ${creator}`
+    );
+
+    await saveCachedCreator(
+      mint,
+      creator
+    );
+
+  }
+
+  return creator;
+
+} catch (error) {
+
+  console.log(
+    "Find Creator Error:",
+    error.response?.data ||
+    error.message
+  );
+
+  return null;
+
+}
+  
 // =====================================
 // SIGNAL ENGINE
 // =====================================
