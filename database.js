@@ -907,21 +907,15 @@ async function saveCachedCreator(mint, creator) {
   await pool.query(
 
     `
-
     INSERT INTO creator_cache
-
     (mint, creator)
 
     VALUES ($1, $2)
 
     ON CONFLICT (mint)
-
     DO UPDATE SET
-
-      creator = EXCLUDED.creator,
-
-      created_at = NOW()
-
+      creator = EXCLUDED.creator
+    WHERE creator_cache.creator IS DISTINCT FROM EXCLUDED.creator
     `,
 
     [mint, creator]
