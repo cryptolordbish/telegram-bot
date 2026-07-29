@@ -1119,65 +1119,85 @@ async function findOriginalCreator(mint) {
       `Searching creator for ${mint}`
     );
 
-    const response = await axios.get(
+    let pages = 0;
+      const MAX_PAGES = 20;
 
-      `${HELIUS_URL}/addresses/${mint}/transactions`,
+    let before = null;
+    let oldestTx = null;
 
-      {
-        params: {
-          "api-key": HELIUS_API_KEY,
-          limit: 10
+   while (pages < MAX_PAGES) {
+
+      const response = await axios.get(
+
+        `${HELIUS_URL}/addresses/${mint}/transactions`,
+
+        {
+          params: {
+            "api-key": HELIUS_API_KEY,
+            limit: 100,
+            before
+          }
         }
-      }
 
-    );
+      );
 
-    const transactions =
-      response.data || [];
+      const transactions =
+        response.data || [];
+        pages++;
 
-    if (!transactions.length)
-      return null;
+     console.log(
+      `Scanning Page ${pages}`
+   );
 
-    // =====================================
-    // OLDEST TRANSACTION FIRST
-    // =====================================
+      if (!transactions.length)
+        break;
 
-    transactions.reverse();
+      // =====================================
+      // SAVE THE OLDEST TX OF THIS PAGE
+      // =====================================
 
-    // =====================================
-    // DEBUG OUTPUT
-    // =====================================
-
-    for (const tx of transactions) {
-
-      console.log("================================");
+      oldestTx =
+        transactions[
+          transactions.length - 1
+        ];
 
       console.log(
-        `TYPE: ${tx.type}`
+        `Fetched ${transactions.length} transactions`
+      );
+
+      // =====================================
+      // DEBUG
+      // =====================================
+
+      console.log(
+        `Oldest Type: ${oldestTx.type}`
       );
 
       console.log(
-        `SOURCE: ${tx.source}`
+        `Oldest Source: ${oldestTx.source}`
       );
 
       console.log(
-        `FEE PAYER: ${tx.feePayer}`
+        `Oldest Fee Payer: ${oldestTx.feePayer}`
       );
 
-      console.log(
-        `SIGNATURE: ${tx.signature}`
-      );
+      // =====================================
+      // NEXT PAGE
+      // =====================================
+
+      before =
+        oldestTx.signature;
 
     }
 
-    // =====================================
-    // TEMPORARY
-    // =====================================
-
     const creator =
-      transactions[0]?.feePayer || null;
+      oldestTx?.feePayer || null;
 
     if (creator) {
+
+      console.log(
+        `Original Creator Found: ${creator}`
+      );
 
       await saveCachedCreator(
         mint,
