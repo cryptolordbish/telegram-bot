@@ -288,7 +288,7 @@ const HELIUS_URL =
 // FEATURES
 // =====================================
 
-const ENABLE_CREATOR_LOOKUP = false;
+const ENABLE_CREATOR_LOOKUP = true;
 
 // =====================================
 // MEMORY
@@ -1143,8 +1143,9 @@ async function findOriginalCreator(mint) {
     // We'll extract the creator next.
     // =====================================
 
-    const creator = null;
-
+   const creator =
+  transactions[0]?.feePayer || null;
+    
     if (creator) {
 
       await saveCachedCreator(
