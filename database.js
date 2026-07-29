@@ -874,25 +874,25 @@ async function getDeveloperLaunches(wallet, limit = 5) {
 async function getCachedCreator(mint) {
 
   const result = await pool.query(
-
     `
-
     SELECT creator
-
     FROM creator_cache
-
     WHERE mint = $1
-
     LIMIT 1
-
     `,
-
     [mint]
+  );
 
+  console.log(
+    `Cache rows for ${mint}: ${result.rows.length}`
   );
 
   if (result.rows.length === 0)
     return null;
+
+  console.log(
+    `Database returned: ${result.rows[0].creator}`
+  );
 
   return result.rows[0].creator;
 
@@ -986,6 +986,10 @@ async function saveCachedFundingWallet(
 
     [mint, feePayer]
 
+  );
+
+   console.log(
+    `Saved Creator Cache: ${mint} -> ${creator}`
   );
 
 }
