@@ -1135,17 +1135,48 @@ async function findOriginalCreator(mint) {
     const transactions =
       response.data || [];
 
-    console.log(
-      transactions[0]
-    );
+    if (!transactions.length)
+      return null;
 
     // =====================================
-    // We'll extract the creator next.
+    // OLDEST TRANSACTION FIRST
     // =====================================
 
-   const creator =
-  transactions[0]?.feePayer || null;
-    
+    transactions.reverse();
+
+    // =====================================
+    // DEBUG OUTPUT
+    // =====================================
+
+    for (const tx of transactions) {
+
+      console.log("================================");
+
+      console.log(
+        `TYPE: ${tx.type}`
+      );
+
+      console.log(
+        `SOURCE: ${tx.source}`
+      );
+
+      console.log(
+        `FEE PAYER: ${tx.feePayer}`
+      );
+
+      console.log(
+        `SIGNATURE: ${tx.signature}`
+      );
+
+    }
+
+    // =====================================
+    // TEMPORARY
+    // =====================================
+
+    const creator =
+      transactions[0]?.feePayer || null;
+
     if (creator) {
 
       await saveCachedCreator(
