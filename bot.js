@@ -2242,6 +2242,8 @@ ${safety.freezeEnabled ? "ON" : "OFF"}
   `);
 
 }
+
+}  
   
 // =====================================
 // PUMPFUN TRACKER
