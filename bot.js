@@ -1758,6 +1758,7 @@ async function processToken(
 
     }
 
+
 // =====================================
 // DEVELOPER PERFORMANCE
 // =====================================
@@ -1771,26 +1772,44 @@ if (originalCreator) {
   try {
 
     developerStats =
-      await getDeveloper(
-        originalCreator
-      );
+      await getDeveloper(originalCreator);
 
     if (developerStats) {
 
-      const failed = Math.max(
-        0,
-        developerStats.total_launches -
-        developerStats.winners_3x
-      );
+      const launches =
+        Number(developerStats.total_launches || 0);
+
+      const winners =
+        Number(developerStats.winners_3x || 0);
+
+      const failed =
+        Math.max(
+          launches - winners,
+          0
+        );
 
       const winRate =
-        developerStats.total_launches
+        launches
           ? (
-              developerStats.winners_3x /
-              developerStats.total_launches *
+              winners /
+              launches *
               100
             ).toFixed(1)
-          : 0;
+          : "0.0";
+
+      let rating = "⭐ High Risk";
+
+      if (Number(winRate) >= 80)
+        rating = "⭐⭐⭐⭐⭐ Elite";
+
+      else if (Number(winRate) >= 60)
+        rating = "⭐⭐⭐⭐ Strong";
+
+      else if (Number(winRate) >= 40)
+        rating = "⭐⭐⭐ Average";
+
+      else if (Number(winRate) >= 20)
+        rating = "⭐⭐ Weak";
 
       developerReport = `
 
@@ -1799,19 +1818,13 @@ if (originalCreator) {
 👤 Developer
 
 Wallet:
-${originalCreator.slice(0,5)}...${originalCreator.slice(-4)}
+${originalCreator.slice(0,6)}...${originalCreator.slice(-6)}
 
 📦 Launches:
-${developerStats.total_launches}
+${launches}
 
-🏆 3X Winners:
-${developerStats.winners_3x}
-
-🔥 5X Winners:
-${developerStats.winners_5x}
-
-💎 10X Winners:
-${developerStats.winners_10x}
+🏆 Winners:
+${winners}
 
 💀 Failed:
 ${failed}
@@ -1820,25 +1833,22 @@ ${failed}
 ${winRate}%
 
 🚀 Best:
-+${Number(
-  developerStats.best_gain || 0
-).toFixed(0)}%
++${Number(developerStats.best_gain || 0).toFixed(0)}%
 
 📈 Average:
-+${Number(
-  developerStats.average_gain || 0
-).toFixed(0)}%
++${Number(developerStats.average_gain || 0).toFixed(0)}%
 
-⭐ Trust Score:
-${developerStats.trust_score}/100
-`;
+⭐ Rating:
+${rating}
+
+━━━━━━━━━━━━━━`;
 
     }
 
   } catch (error) {
 
     console.log(
-      `Developer Stats Failed: ${error.message}`
+      `Developer Lookup Failed: ${error.message}`
     );
 
   }
