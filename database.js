@@ -995,8 +995,83 @@ async function saveCachedFundingWallet(
 }
 
 // =====================================
-// EXPORTS
+// GET DEVELOPER PERFORMANCE
 // =====================================
+
+async function getDeveloperPerformance(developerWallet) {
+
+  if (!developerWallet)
+    return null;
+
+  const result =
+    await pool.query(
+
+      `
+      SELECT
+
+      COUNT(*) AS launches,
+
+      COUNT(*) FILTER (
+        WHERE highest_pnl >= 100
+      ) AS winners,
+
+      COUNT(*) FILTER (
+        WHERE highest_pnl < 100
+      ) AS failed,
+
+      MAX(highest_pnl) AS best,
+
+      AVG(highest_pnl) AS average
+
+      FROM completed_trades
+
+      WHERE developer_wallet = $1
+      `,
+
+      [developerWallet]
+
+    );
+
+  const row =
+    result.rows[0];
+
+  const launches =
+    Number(row.launches);
+
+  const winners =
+    Number(row.winners);
+
+  const failed =
+    Number(row.failed);
+
+  const winRate =
+    launches
+      ? (
+          winners /
+          launches *
+          100
+        ).toFixed(1)
+      : 0;
+
+  return {
+
+    launches,
+
+    winners,
+
+    failed,
+
+    winRate,
+
+    best:
+      Number(row.best || 0),
+
+    average:
+      Number(row.average || 0)
+
+  };
+
+}
 
 module.exports = {
 
@@ -1015,6 +1090,8 @@ module.exports = {
   getDeveloper,
 
   getDeveloperLaunches,
+
+  getDeveloperPerformance,
 
   getCachedCreator,
 
