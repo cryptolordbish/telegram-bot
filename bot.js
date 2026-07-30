@@ -1758,6 +1758,93 @@ async function processToken(
 
     }
 
+// =====================================
+// DEVELOPER PERFORMANCE
+// =====================================
+
+let developerStats = null;
+
+let developerReport = "";
+
+if (originalCreator) {
+
+  try {
+
+    developerStats =
+      await getDeveloper(
+        originalCreator
+      );
+
+    if (developerStats) {
+
+      const failed = Math.max(
+        0,
+        developerStats.total_launches -
+        developerStats.winners_3x
+      );
+
+      const winRate =
+        developerStats.total_launches
+          ? (
+              developerStats.winners_3x /
+              developerStats.total_launches *
+              100
+            ).toFixed(1)
+          : 0;
+
+      developerReport = `
+
+━━━━━━━━━━━━━━
+
+👤 Developer
+
+Wallet:
+${originalCreator.slice(0,5)}...${originalCreator.slice(-4)}
+
+📦 Launches:
+${developerStats.total_launches}
+
+🏆 3X Winners:
+${developerStats.winners_3x}
+
+🔥 5X Winners:
+${developerStats.winners_5x}
+
+💎 10X Winners:
+${developerStats.winners_10x}
+
+💀 Failed:
+${failed}
+
+🎯 Win Rate:
+${winRate}%
+
+🚀 Best:
++${Number(
+  developerStats.best_gain || 0
+).toFixed(0)}%
+
+📈 Average:
++${Number(
+  developerStats.average_gain || 0
+).toFixed(0)}%
+
+⭐ Trust Score:
+${developerStats.trust_score}/100
+`;
+
+    }
+
+  } catch (error) {
+
+    console.log(
+      `Developer Stats Failed: ${error.message}`
+    );
+
+  }
+
+}
+
     // =====================================
     // TOKEN AGE
     // =====================================
@@ -2097,12 +2184,13 @@ if (score >= 75) {
     return;
   }
 
-  // =====================================
-  // ALERT (OUTSIDE TRY-CATCH)
-  // =====================================
+ // =====================================
+// ALERT (OUTSIDE TRY-CATCH)
+// =====================================
 
-  if (result && result.allowed) {
-    await sendAlert(`
+if (result && result.allowed) {
+
+  await sendAlert(`
 
 🚨 ${result.signal}
 
@@ -2138,6 +2226,8 @@ ${score}/100
 🧠 AI:
 ${aiResult}
 
+${developerReport || ""}
+
 🔒 LP Locked:
 ${safety.lpLocked ? "YES" : "NO"}
 
@@ -2148,8 +2238,9 @@ ${safety.mintEnabled ? "ON" : "OFF"}
 ${safety.freezeEnabled ? "ON" : "OFF"}
 
 🔗 ${tokenUrl || "No URL"}
-    `);
-  }
+
+  `);
+
 }
   
 // =====================================
