@@ -1778,9 +1778,9 @@ if (originalCreator) {
       originalCreator
     );
 
-    developerStats =
-      await getDeveloper(originalCreator);
-
+   developerStats =
+  await getDeveloper(originalCreator);
+    
     console.log(
       "Developer Found:",
       developerStats
@@ -2185,7 +2185,7 @@ if (score >= 75) {
   await paperBuy(
   contract,
   tokenName,
-  safety.developerWallet,
+  originalCreator || safety.developerWallet,
   fundingWallet,
   pair.priceUsd,
   marketCap,
