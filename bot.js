@@ -2370,7 +2370,7 @@ function startPumpFun() {
       0,
 
     lastSignal:
-      null
+      null,
       
     alertSent: false
   }
