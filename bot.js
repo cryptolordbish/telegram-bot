@@ -1740,6 +1740,8 @@ async function processToken(
             `Original Creator: ${originalCreator}`
           );
 
+          console.log("Original Creator Wallet:", originalCreator);
+
           tokenData = {
             ...tokenData,
             originalCreator
@@ -1771,8 +1773,18 @@ if (originalCreator) {
 
   try {
 
+    console.log(
+      "Looking up developer:",
+      originalCreator
+    );
+
     developerStats =
       await getDeveloper(originalCreator);
+
+    console.log(
+      "Developer Found:",
+      developerStats
+    );
 
     if (developerStats) {
 
@@ -2035,6 +2047,11 @@ safety =
     pair,
     pair
   );
+
+    console.log(
+  "Safety Developer Wallet:",
+  safety.developerWallet
+);
 
 if (!safety.safe) {
 
