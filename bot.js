@@ -2223,13 +2223,17 @@ if (score >= 75) {
     return;
   }
 
- // =====================================
+// =====================================
 // ALERT (OUTSIDE TRY-CATCH)
 // =====================================
 
 if (result && result.allowed) {
 
-  await sendAlert(`
+  const tracked = trackedTokens.get(contract);
+
+  if (!tracked.buyAlertSent) {
+
+    await sendAlert(`
 
 🚨 ${result.signal}
 
@@ -2278,11 +2282,13 @@ ${safety.freezeEnabled ? "ON" : "OFF"}
 
 🔗 ${tokenUrl || "No URL"}
 
-  `);
+`);
 
+    tracked.buyAlertSent = true;
+
+    console.log(`${contract}: Buy alert sent.`);
+  }
 }
-
-}  
   
 // =====================================
 // PUMPFUN TRACKER
@@ -2365,6 +2371,8 @@ function startPumpFun() {
 
     lastSignal:
       null
+      
+    alertSent: false
   }
 );
 
