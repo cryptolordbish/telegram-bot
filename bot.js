@@ -1767,6 +1767,8 @@ let developerStats = null;
 
 let developerReport = "";
 
+ console.log("Developer report initialized");   
+
 if (originalCreator) {
 
   try {
