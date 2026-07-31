@@ -1788,42 +1788,32 @@ if (originalCreator) {
 
     if (developerStats) {
 
-      const launches =
-        Number(developerStats.total_launches || 0);
+    const launches =
+      Number(developerStats.total_launches || 0);
 
-      const winners =
-        Number(developerStats.winners_3x || 0);
+    const winners =
+      Number(developerStats.winners_3x || 0);
 
-      const failed =
-        Math.max(
-          launches - winners,
-          0
-        );
+    const failed =
+      Math.max(launches - winners, 0);
 
-      const winRate =
-        launches
-          ? (
-              winners /
-              launches *
-              100
-            ).toFixed(1)
-          : "0.0";
+    const winRate =
+      launches
+        ? ((winners / launches) * 100).toFixed(1)
+        : "0.0";
 
-      let rating = "⭐ High Risk";
+    let rating = "⭐ High Risk";
 
-      if (Number(winRate) >= 80)
-        rating = "⭐⭐⭐⭐⭐ Elite";
+    if (Number(winRate) >= 80)
+      rating = "⭐⭐⭐⭐⭐ Elite";
+    else if (Number(winRate) >= 60)
+      rating = "⭐⭐⭐⭐ Strong";
+    else if (Number(winRate) >= 40)
+      rating = "⭐⭐⭐ Average";
+    else if (Number(winRate) >= 20)
+      rating = "⭐⭐ Weak";
 
-      else if (Number(winRate) >= 60)
-        rating = "⭐⭐⭐⭐ Strong";
-
-      else if (Number(winRate) >= 40)
-        rating = "⭐⭐⭐ Average";
-
-      else if (Number(winRate) >= 20)
-        rating = "⭐⭐ Weak";
-
-      developerReport = `
+    developerReport = `
 
 ━━━━━━━━━━━━━━
 
@@ -1831,6 +1821,8 @@ if (originalCreator) {
 
 Wallet:
 ${originalCreator.slice(0,6)}...${originalCreator.slice(-6)}
+
+🔥 RETURNING DEVELOPER
 
 📦 Launches:
 ${launches}
@@ -1855,7 +1847,27 @@ ${rating}
 
 ━━━━━━━━━━━━━━`;
 
-    }
+} else {
+
+    developerReport = `
+
+━━━━━━━━━━━━━━
+
+👤 Developer
+
+Wallet:
+${originalCreator.slice(0,6)}...${originalCreator.slice(-6)}
+
+🟢 NEW DEVELOPER
+
+📦 Launches:
+1 (Current)
+
+No previous tracked launches.
+
+━━━━━━━━━━━━━━`;
+
+}
 
   } catch (error) {
 
