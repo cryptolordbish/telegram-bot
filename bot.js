@@ -1599,6 +1599,10 @@ async function processToken(
   let result = null;
   let aiResult = "Skipped";
 
+  let developerStats = null;
+
+  let developerReport = "";
+
   try {
 
     console.log(
@@ -1761,13 +1765,7 @@ async function processToken(
 
 // =====================================
 // DEVELOPER PERFORMANCE
-// =====================================
-
-let developerStats = null;
-
-let developerReport = "";
-
- console.log("Developer report initialized");   
+// ===================================== 
 
 if (originalCreator) {
 
