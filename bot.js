@@ -2291,9 +2291,13 @@ ${safety.freezeEnabled ? "ON" : "OFF"}
     tracked.buyAlertSent = true;
 
     console.log(`${contract}: Buy alert sent.`);
-  }
+    
 }
   
+}
+  
+}
+
 // =====================================
 // PUMPFUN TRACKER
 // =====================================
