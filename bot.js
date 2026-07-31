@@ -1908,33 +1908,37 @@ No previous tracked launches.
 
     }
 
-    // =====================================
-    // UPDATE MEMORY
-    // =====================================
+// =====================================
+// UPDATE MEMORY
+// =====================================
 
-    tokenData = {
-      ...tokenData,
-      contract,
-      tokenName,
-      tokenUrl,
-      pairCreatedAt:
-        pair.pairCreatedAt,
-      migratedAt:
-        tokenData.migratedAt,
-      feePayer:
-        fundingWallet,
-      originalCreator,
-      lastChecked:
-        tokenData.lastChecked ??
-        Date.now(),
-      lastSignal:
-        tokenData.lastSignal
-    };
+tokenData = {
+  ...tokenData,
+  contract,
+  tokenName,
+  tokenUrl,
+  pairCreatedAt:
+    pair.pairCreatedAt,
+  migratedAt:
+    tokenData.migratedAt,
+  feePayer:
+    fundingWallet,
+  originalCreator,
+  lastChecked:
+    tokenData.lastChecked ??
+    Date.now(),
+  lastSignal:
+    tokenData.lastSignal,
 
-    trackedTokens.set(
-      contract,
-      tokenData
-    );
+  // Preserve the buy alert flag
+  buyAlertSent:
+    tokenData.buyAlertSent ?? false
+};
+
+trackedTokens.set(
+  contract,
+  tokenData
+);
 
 // =====================================
 // MARKET DATA
@@ -2372,7 +2376,7 @@ function startPumpFun() {
     lastSignal:
       null,
       
-    alertSent: false
+    buyAlertSent: false
   }
 );
 
