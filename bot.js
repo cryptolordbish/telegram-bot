@@ -1121,7 +1121,7 @@ try {
 
   let pages = 0;
 
-  const MAX_PAGES = 20;
+  const MAX_PAGES = 5;
 
   let before = null;
 
@@ -1156,7 +1156,7 @@ try {
         {
           params: {
             "api-key": HELIUS_API_KEY,
-            limit: 100,
+            limit:1000,
             before
           }
         }
