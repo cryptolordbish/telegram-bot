@@ -113,6 +113,134 @@ async function findDeveloperIdentity(
 
 }
 
+// =====================================
+// CREATE DEVELOPER IDENTITY
+// =====================================
+
+async function createDeveloperIdentity() {
+
+  try {
+
+    const result = await pool.query(
+
+      `
+
+      INSERT INTO developer_identity
+
+      DEFAULT VALUES
+
+      RETURNING identity_id
+
+      `
+
+    );
+
+    const identityId =
+      result.rows[0].identity_id;
+
+    console.log(
+      `New Identity Created: ${identityId}`
+    );
+
+    return identityId;
+
+  } catch (error) {
+
+    console.log(
+      "Create Identity Error:",
+      error.message
+    );
+
+    return null;
+
+  }
+
+}
+
+// =====================================
+// LINK WALLETS TO IDENTITY
+// =====================================
+
+async function linkWalletToIdentity(
+
+  identityId,
+
+  developerWallet,
+
+  fundingWallet,
+
+  feePayer
+
+) {
+
+  try {
+
+    await pool.query(
+
+      `
+
+      INSERT INTO developer_wallets (
+
+        identity_id,
+
+        developer_wallet,
+
+        funding_wallet,
+
+        fee_payer
+
+      )
+
+      VALUES (
+
+        $1,$2,$3,$4
+
+      )
+
+      ON CONFLICT DO NOTHING
+
+      `,
+
+      [
+
+        identityId,
+
+        developerWallet,
+
+        fundingWallet,
+
+        feePayer
+
+      ]
+
+    );
+
+    console.log(
+
+      `Wallets linked to Identity ${identityId}`
+
+    );
+
+  } catch (error) {
+
+    console.log(
+
+      "Link Wallet Error:",
+
+      error.message
+
+    );
+
+  }
+
+}
+
 module.exports = {
-  findDeveloperIdentity
+
+  findDeveloperIdentity,
+
+  createDeveloperIdentity,
+
+  linkWalletToIdentity
+
 };
