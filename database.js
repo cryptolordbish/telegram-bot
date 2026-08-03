@@ -178,6 +178,89 @@ console.log(
     "✅ developers table ready"
   );
 
+  // =====================================
+// DEVELOPER IDENTITY
+// =====================================
+
+await pool.query(`
+
+CREATE TABLE IF NOT EXISTS developer_identity (
+
+    identity_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+    created_at TIMESTAMP DEFAULT NOW(),
+
+    updated_at TIMESTAMP DEFAULT NOW(),
+
+    total_launches INTEGER DEFAULT 0,
+
+    winners_3x INTEGER DEFAULT 0,
+
+    failed_launches INTEGER DEFAULT 0,
+
+    best_gain DOUBLE PRECISION DEFAULT 0,
+
+    average_gain DOUBLE PRECISION DEFAULT 0
+
+);
+
+`);
+
+console.log(
+  "✅ developer_identity table ready"
+);
+
+// =====================================
+// DEVELOPER WALLETS
+// =====================================
+
+await pool.query(`
+
+CREATE TABLE IF NOT EXISTS developer_wallets (
+
+    id SERIAL PRIMARY KEY,
+
+    identity_id UUID REFERENCES developer_identity(identity_id),
+
+    developer_wallet TEXT,
+
+    funding_wallet TEXT,
+
+    fee_payer TEXT,
+
+    first_seen TIMESTAMP DEFAULT NOW(),
+
+    last_seen TIMESTAMP DEFAULT NOW()
+
+);
+
+`);
+
+  await pool.query(`
+CREATE INDEX IF NOT EXISTS idx_dev_wallet
+ON developer_wallets(developer_wallet);
+`);
+
+await pool.query(`
+CREATE INDEX IF NOT EXISTS idx_funding_wallet
+ON developer_wallets(funding_wallet);
+`);
+
+await pool.query(`
+CREATE INDEX IF NOT EXISTS idx_fee_payer
+ON developer_wallets(fee_payer);
+`);
+
+await pool.query(`
+CREATE INDEX IF NOT EXISTS idx_identity
+ON developer_wallets(identity_id);
+`);
+
+  console.log(
+  "✅ developer_wallets table + indexes ready"
+);
+
+
 // =====================================
 // DEVELOPER LAUNCH HISTORY
 // =====================================
