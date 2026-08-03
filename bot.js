@@ -99,6 +99,9 @@ else {
 
   contract,
 
+  identityId:
+    trade.identityId,
+
   developerWallet:
     trade.developerWallet,
 
@@ -476,6 +479,7 @@ async function sendAlert(message) {
 async function paperBuy(
   contract,
   tokenName,
+  identityId,
   developerWallet,
   fundingWallet,
   price,
@@ -494,6 +498,9 @@ async function paperBuy(
       contract,
 
       tokenName,
+
+      identityId:
+        identityId,
 
       developerWallet:
         developerWallet,
@@ -2278,6 +2285,7 @@ if (score >= 75) {
   await paperBuy(
   contract,
   tokenName,
+  identityId, 
   originalCreator || safety.developerWallet,
   fundingWallet,
   pair.priceUsd,
