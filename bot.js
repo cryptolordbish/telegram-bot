@@ -102,6 +102,9 @@ else {
   developerWallet:
     trade.developerWallet,
 
+  fundingWallet:
+    trade.fundingWallet,
+
   feePayer:
     trade.feePayer,
 
@@ -151,7 +154,7 @@ else {
     trade.sellReason
 
 };
-
+  
 completedTrades.push(completedTrade);
 
 await saveCompletedTrade(completedTrade);
@@ -464,7 +467,7 @@ async function paperBuy(
   contract,
   tokenName,
   developerWallet,
-  feePayer,
+  fundingWallet,
   price,
   marketCap,
   score,
@@ -483,11 +486,11 @@ async function paperBuy(
     contract,
     tokenName,
     
-    developerWallet:
+   developerWallet:
      developerWallet,
 
-    feePayer:
-      feePayer,
+  fundingWallet:
+    fundingWallet,,
 
     entryPrice:
       Number(price),
