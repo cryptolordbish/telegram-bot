@@ -472,70 +472,68 @@ async function paperBuy(
   marketCap,
   score,
   signal
-){
-  
-  if (
-    paperTrades.has(contract)
-  ) {
+) {
+
+  if (paperTrades.has(contract)) {
     return;
   }
 
- paperTrades.set(
-  contract,
-  {
+  paperTrades.set(
     contract,
-    tokenName,
-    
-   developerWallet:
-     developerWallet,
+    {
+      contract,
 
-  fundingWallet:
-    fundingWallet,,
+      tokenName,
 
-    entryPrice:
-      Number(price),
+      developerWallet:
+        developerWallet,
 
-    currentPrice:
-      Number(price),
+      fundingWallet:
+        fundingWallet,
 
-    highestPrice:
-      Number(price),
+      entryPrice:
+        Number(price),
 
-    entryMarketCap:
-      marketCap,
+      currentPrice:
+        Number(price),
 
-    currentMarketCap:
-      marketCap,
+      highestPrice:
+        Number(price),
 
-    highestMarketCap:
-      marketCap,
+      entryMarketCap:
+        marketCap,
 
-    buyAmount:
-      PAPER_BUY_AMOUNT,
+      currentMarketCap:
+        marketCap,
 
-    // ADD THESE
-    entryScore:
-      score,
+      highestMarketCap:
+        marketCap,
 
-    buySignal:
-      signal,
+      buyAmount:
+        PAPER_BUY_AMOUNT,
 
-    currentPnL: 0,
+      entryScore:
+        score,
 
-    highestPnL: 0,
+      buySignal:
+        signal,
 
-    highestReachedAt: null,
+      currentPnL: 0,
 
-    highestMarketCapReachedAt: null,
+      highestPnL: 0,
 
-    boughtAt:
-      Date.now(),
+      highestReachedAt: null,
 
-    sold: false,
+      highestMarketCapReachedAt: null,
 
-    sellReason: null
-  }
-);
+      boughtAt:
+        Date.now(),
+
+      sold: false,
+
+      sellReason: null
+    }
+  );
 
   console.log(
     `PAPER BUY: ${tokenName}`
