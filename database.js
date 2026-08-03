@@ -269,9 +269,9 @@ async function saveCompletedTrade(trade) {
 
         contract,
         developer_wallet,
+        funding_wallet,
         fee_payer,
         token_name,
-
         entry_price,
         highest_price,
         current_price,
@@ -294,57 +294,54 @@ async function saveCompletedTrade(trade) {
 
       )
 
-      VALUES (
+     VALUES (
 
-      $1,$2,$3,$4,
+$1,$2,$3,$4,$5,
 
-      $5,$6,$7,
+$6,$7,$8,
 
-      $8,$9,$10,
+$9,$10,$11,
 
-      $11,$12,
+$12,$13,
 
-      $13,$14,$15,
+$14,$15,$16,
 
-      $16,$17,
+$17,$18,
 
-      $18
-
-     )
-
+$19
+)
         
 
       `,
 
-      [
-        
-       trade.contract,
-       trade.developerWallet,
-       trade.feePayer,
-       trade.tokenName,
+[
+  trade.contract,
+  trade.developerWallet,
+  trade.fundingWallet,
+  trade.feePayer,
+  trade.tokenName,
 
-        trade.entryPrice,
-        trade.highestPrice,
-        trade.currentPrice,
+  trade.entryPrice,
+  trade.highestPrice,
+  trade.currentPrice,
 
-        trade.entryMarketCap,
-        trade.highestMarketCap,
-        trade.currentMarketCap,
+  trade.entryMarketCap,
+  trade.highestMarketCap,
+  trade.currentMarketCap,
 
-        trade.highestPnL,
-        trade.currentPnL,
+  trade.highestPnL,
+  trade.currentPnL,
 
-        trade.boughtAt,
-        trade.highestReachedAt,
-        trade.highestMarketCapReachedAt,
+  trade.boughtAt,
+  trade.highestReachedAt,
+  trade.highestMarketCapReachedAt,
 
-        trade.entryScore,
-        trade.buySignal,
+  trade.entryScore,
+  trade.buySignal,
 
-        trade.sellReason
-
-      ]
-
+  trade.sellReason
+]
+      
     );
 
     console.log(
