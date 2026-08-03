@@ -19,13 +19,13 @@ async function initializeDatabase() {
 
   await pool.query("SELECT NOW()");
 
-  // =====================================
-  // COMPLETED TRADES TABLE
-  // =====================================
+// =====================================
+// COMPLETED TRADES TABLE
+// =====================================
 
-  await pool.query(`
+await pool.query(`
 
-  CREATE TABLE IF NOT EXISTS completed_trades (
+CREATE TABLE IF NOT EXISTS completed_trades (
 
     id SERIAL PRIMARY KEY,
 
@@ -69,15 +69,19 @@ async function initializeDatabase() {
 
     created_at TIMESTAMP DEFAULT NOW()
 
-  );
+);
 
-  `);
+`);
 
-  console.log(
-    "✅ completed_trades table ready"
-  );
+console.log(
+  "✅ completed_trades table ready"
+);
 
-  await pool.query(`
+// =====================================
+// VERIFY COLUMNS
+// =====================================
+
+await pool.query(`
 
 ALTER TABLE completed_trades
 
@@ -87,6 +91,18 @@ ADD COLUMN IF NOT EXISTS developer_wallet TEXT;
 
 console.log(
   "✅ completed_trades developer_wallet column verified"
+);
+
+await pool.query(`
+
+ALTER TABLE completed_trades
+
+ADD COLUMN IF NOT EXISTS identity_id UUID;
+
+`);
+
+console.log(
+  "✅ completed_trades identity_id column verified"
 );
 
 // =====================================
