@@ -265,50 +265,51 @@ async function saveCompletedTrade(trade) {
 
       `
 
-      INSERT INTO completed_trades (
+     INSERT INTO completed_trades (
 
-        contract,
-        developer_wallet,
-        funding_wallet,
-        fee_payer,
-        token_name,
-        entry_price,
-        highest_price,
-        current_price,
+    contract,
+    developer_wallet,
+    fee_payer,
+    token_name,
 
-        entry_market_cap,
-        highest_market_cap,
-        current_market_cap,
+    entry_price,
+    highest_price,
+    current_price,
 
-        highest_pnl,
-        current_pnl,
+    entry_market_cap,
+    highest_market_cap,
+    current_market_cap,
 
-        bought_at,
-        highest_reached_at,
-        highest_market_cap_reached_at,
+    highest_pnl,
+    current_pnl,
 
-        entry_score,
-        buy_signal,
+    bought_at,
+    highest_reached_at,
+    highest_market_cap_reached_at,
 
-        sell_reason
+    entry_score,
+    buy_signal,
 
-      )
+    sell_reason
 
-     VALUES (
+)
 
-$1,$2,$3,$4,$5,
+    VALUES (
 
-$6,$7,$8,
+$1,$2,$3,$4,
 
-$9,$10,$11,
+$5,$6,$7,
 
-$12,$13,
+$8,$9,$10,
 
-$14,$15,$16,
+$11,$12,
 
-$17,$18,
+$13,$14,$15,
 
-$19
+$16,$17,
+
+$18
+
 )
         
 
@@ -317,8 +318,8 @@ $19
 [
   trade.contract,
   trade.developerWallet,
-  trade.fundingWallet,
-  trade.feePayer,
+
+  trade.fundingWallet,  
   trade.tokenName,
 
   trade.entryPrice,
