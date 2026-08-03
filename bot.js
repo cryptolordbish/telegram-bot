@@ -1726,55 +1726,121 @@ async function processToken(
 
     }
 
-    // =====================================
-    // FIND ORIGINAL TOKEN CREATOR
-    // =====================================
+// =====================================
+// FIND ORIGINAL TOKEN CREATOR
+// =====================================
 
-    let originalCreator =
-      tokenData.originalCreator || null;
+let originalCreator =
+  tokenData.originalCreator || null;
 
-    if (
-      ENABLE_CREATOR_LOOKUP &&
-      !originalCreator
-    ) {
+if (
+  ENABLE_CREATOR_LOOKUP &&
+  !originalCreator
+) {
 
-      try {
+  try {
 
-        originalCreator =
-          await findOriginalCreator(
-            contract
-          );
+    originalCreator =
+      await findOriginalCreator(
+        contract
+      );
 
-        if (originalCreator) {
+    if (originalCreator) {
 
-          console.log(
-            `Original Creator: ${originalCreator}`
-          );
+      console.log(
+        `Original Creator: ${originalCreator}`
+      );
 
-          console.log("Original Creator Wallet:", originalCreator);
+      console.log(
+        "Original Creator Wallet:",
+        originalCreator
+      );
 
-          tokenData = {
-            ...tokenData,
-            originalCreator
-          };
+      tokenData = {
+        ...tokenData,
+        originalCreator
+      };
 
-          trackedTokens.set(
-            contract,
-            tokenData
-          );
-
-        }
-
-      } catch (error) {
-
-        console.log(
-          `Creator Lookup Failed: ${error.message}`
-        );
-
-      }
+      trackedTokens.set(
+        contract,
+        tokenData
+      );
 
     }
 
+  } catch (error) {
+
+    console.log(
+      `Creator Lookup Failed: ${error.message}`
+    );
+
+  }
+
+}
+
+// =====================================
+// DEVELOPER IDENTITY ENGINE
+// =====================================
+
+let identityId = null;
+
+try {
+
+  identityId =
+    await findDeveloperIdentity(
+
+      originalCreator,
+
+      fundingWallet,
+
+      fundingWallet
+
+    );
+
+  if (!identityId) {
+
+    identityId =
+      await createDeveloperIdentity();
+
+    console.log(
+      `New Identity Created: ${identityId}`
+    );
+
+  }
+
+  await linkWalletToIdentity(
+
+    identityId,
+
+    originalCreator,
+
+    fundingWallet,
+
+    fundingWallet
+
+  );
+
+  tokenData = {
+
+    ...tokenData,
+
+    identityId
+
+  };
+
+  trackedTokens.set(
+    contract,
+    tokenData
+  );
+
+} catch (error) {
+
+  console.log(
+    "Identity Engine Error:",
+    error.message
+  );
+
+}
 
 // =====================================
 // DEVELOPER PERFORMANCE
