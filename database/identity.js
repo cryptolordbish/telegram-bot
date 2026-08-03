@@ -193,11 +193,31 @@ async function linkWalletToIdentity(
 
       VALUES (
 
-        $1,$2,$3,$4
+        $1,
+
+        $2,
+
+        $3,
+
+        $4
 
       )
 
-      ON CONFLICT DO NOTHING
+      ON CONFLICT (
+
+        developer_wallet,
+
+        funding_wallet,
+
+        fee_payer
+
+      )
+
+      DO UPDATE
+
+      SET
+
+        last_seen = NOW()
 
       `,
 
