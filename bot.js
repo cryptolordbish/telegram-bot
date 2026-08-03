@@ -266,6 +266,16 @@ const {
 
 } = require("./database");
 
+const {
+
+  findDeveloperIdentity,
+
+  createDeveloperIdentity,
+
+  linkWalletToIdentity
+
+} = require("./database/identity");
+
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
