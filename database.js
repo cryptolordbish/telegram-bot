@@ -260,6 +260,32 @@ ON developer_wallets(identity_id);
   "✅ developer_wallets table + indexes ready"
 );
 
+// =====================================
+// DEVELOPER WALLET UNIQUE CONSTRAINT
+// =====================================
+
+await pool.query(`
+
+ALTER TABLE developer_wallets
+
+ADD CONSTRAINT developer_wallets_unique
+
+UNIQUE (
+
+    developer_wallet,
+
+    funding_wallet,
+
+    fee_payer
+
+);
+
+`).catch(() => {});
+
+console.log(
+  "✅ developer_wallets unique constraint ready"
+);
+
 
 // =====================================
 // DEVELOPER LAUNCH HISTORY
