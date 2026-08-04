@@ -29,6 +29,8 @@ CREATE TABLE IF NOT EXISTS completed_trades (
 
     id SERIAL PRIMARY KEY,
 
+    identity_id UUID,
+
     contract TEXT NOT NULL,
 
     developer_wallet TEXT,
@@ -78,7 +80,7 @@ console.log(
 );
 
 // =====================================
-// VERIFY COLUMNS
+// VERIFY developer_wallet COLUMN
 // =====================================
 
 await pool.query(`
@@ -93,6 +95,10 @@ console.log(
   "✅ completed_trades developer_wallet column verified"
 );
 
+// =====================================
+// VERIFY identity_id COLUMN
+// =====================================
+
 await pool.query(`
 
 ALTER TABLE completed_trades
@@ -104,29 +110,7 @@ ADD COLUMN IF NOT EXISTS identity_id UUID;
 console.log(
   "✅ completed_trades identity_id column verified"
 );
-
-// =====================================
-// CREATOR CACHE TABLE
-// =====================================
-
-await pool.query(`
-
-CREATE TABLE IF NOT EXISTS creator_cache (
-
-    mint TEXT PRIMARY KEY,
-
-    creator TEXT NOT NULL,
-
-    created_at TIMESTAMP DEFAULT NOW()
-
-);
-
-`);
-
-console.log(
-  "✅ creator_cache table ready"
-);
-
+  
 // =====================================
 // FUNDING WALLET CACHE TABLE
 // =====================================
@@ -502,7 +486,7 @@ $19
 
   trade.developerWallet,
 
-  trade.fundingWallet,
+  trade.feePayer || trade.fundingWallet,
 
   trade.tokenName,
 
