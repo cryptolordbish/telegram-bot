@@ -388,90 +388,111 @@ async function saveCompletedTrade(trade) {
 
     await pool.query(
 
-      `
+`
 
-     INSERT INTO completed_trades (
+INSERT INTO completed_trades (
 
     contract,
+
+    identity_id,
+
     developer_wallet,
+
     fee_payer,
+
     token_name,
 
     entry_price,
+
     highest_price,
+
     current_price,
 
     entry_market_cap,
+
     highest_market_cap,
+
     current_market_cap,
 
     highest_pnl,
+
     current_pnl,
 
     bought_at,
+
     highest_reached_at,
+
     highest_market_cap_reached_at,
 
     entry_score,
+
     buy_signal,
 
     sell_reason
 
 )
 
-    VALUES (
+VALUES (
 
-$1,$2,$3,$4,
+$1,$2,$3,$4,$5,
 
-$5,$6,$7,
+$6,$7,$8,
 
-$8,$9,$10,
+$9,$10,$11,
 
-$11,$12,
+$12,$13,
 
-$13,$14,$15,
+$14,$15,$16,
 
-$16,$17,
+$17,$18,
 
-$18
+$19
 
 )
-        
 
-      `,
-
+`,
 [
-  identityId:
-  trade.identityId,
-  
   trade.contract,
+
+  trade.identityId,
+
   trade.developerWallet,
 
-  trade.fundingWallet,  
+  trade.fundingWallet,
+
   trade.tokenName,
 
   trade.entryPrice,
+
   trade.highestPrice,
+
   trade.currentPrice,
 
   trade.entryMarketCap,
+
   trade.highestMarketCap,
+
   trade.currentMarketCap,
 
   trade.highestPnL,
+
   trade.currentPnL,
 
   trade.boughtAt,
+
   trade.highestReachedAt,
+
   trade.highestMarketCapReachedAt,
 
   trade.entryScore,
+
   trade.buySignal,
 
   trade.sellReason
+
 ]
-      
-    );
+
+);
 
     console.log(
       `💾 Saved ${trade.tokenName} to PostgreSQL`
