@@ -109,7 +109,7 @@ else {
     trade.fundingWallet,
 
   feePayer:
-    trade.feePayer,
+  trade.fundingWallet,
 
   tokenName:
     trade.tokenName,
