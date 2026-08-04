@@ -340,6 +340,8 @@ CREATE TABLE IF NOT EXISTS developer_launches (
 
 id SERIAL PRIMARY KEY,
 
+identity_id UUID,
+
 developer_wallet TEXT,
 
 fee_payer TEXT,
@@ -366,8 +368,23 @@ created_at TIMESTAMP DEFAULT NOW()
 
 `);
 
-console.log(
+  console.log(
   "✅ developer_launches table ready"
+);
+
+// =====================================
+// VERIFY identity_id COLUMN
+// =====================================
+
+await pool.query(`
+
+ALTER TABLE developer_launches
+ADD COLUMN IF NOT EXISTS identity_id UUID;
+
+`).catch(() => {});
+
+console.log(
+  "✅ developer_launches identity_id verified"
 );
 
 // =====================================
@@ -550,6 +567,8 @@ async function saveDeveloperLaunch(trade) {
 
       INSERT INTO developer_launches (
 
+        identity_id,
+
         developer_wallet,
 
         fee_payer,
@@ -584,7 +603,9 @@ async function saveDeveloperLaunch(trade) {
 
     $9,
 
-    $10
+    $10,
+
+    $11
 
 )
 
@@ -592,6 +613,8 @@ async function saveDeveloperLaunch(trade) {
 
       [
 
+         trade.identityId,
+        
         trade.developerWallet,
 
         trade.feePayer,
@@ -617,9 +640,8 @@ async function saveDeveloperLaunch(trade) {
     );
 
     console.log(
-
-      `📚 Developer launch saved for ${trade.developerWallet}`
-    );
+  `📚 Developer launch saved | Identity: ${trade.identityId} | Wallet: ${trade.developerWallet}`
+);
 
   } catch (error) {
 
