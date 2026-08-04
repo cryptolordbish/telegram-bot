@@ -150,51 +150,78 @@ console.log(
 );  
 
 
-  // =====================================
-  // DEVELOPERS TABLE
-  // =====================================
+ // =====================================
+// DEVELOPERS TABLE
+// =====================================
 
-  await pool.query(`
+await pool.query(`
 
-  CREATE TABLE IF NOT EXISTS developers (
+CREATE TABLE IF NOT EXISTS developers (
 
-    id SERIAL PRIMARY KEY,
+  id SERIAL PRIMARY KEY,
 
-    developer_wallet TEXT UNIQUE,
+  identity_id UUID UNIQUE,
 
-    total_launches INTEGER DEFAULT 0,
+  developer_wallet TEXT UNIQUE,
 
-    winners_3x INTEGER DEFAULT 0,
+  total_launches INTEGER DEFAULT 0,
 
-    winners_5x INTEGER DEFAULT 0,
+  winners_3x INTEGER DEFAULT 0,
 
-    winners_10x INTEGER DEFAULT 0,
+  winners_5x INTEGER DEFAULT 0,
 
-    rugs INTEGER DEFAULT 0,
+  winners_10x INTEGER DEFAULT 0,
 
-    average_gain DOUBLE PRECISION DEFAULT 0,
+  rugs INTEGER DEFAULT 0,
 
-    average_market_cap DOUBLE PRECISION DEFAULT 0,
+  average_gain DOUBLE PRECISION DEFAULT 0,
 
-    best_gain DOUBLE PRECISION DEFAULT 0,
+  average_market_cap DOUBLE PRECISION DEFAULT 0,
 
-    best_market_cap DOUBLE PRECISION DEFAULT 0,
+  best_gain DOUBLE PRECISION DEFAULT 0,
 
-    trust_score INTEGER DEFAULT 50,
+  best_market_cap DOUBLE PRECISION DEFAULT 0,
 
-    last_seen TIMESTAMP DEFAULT NOW(),
+  trust_score INTEGER DEFAULT 50,
 
-    created_at TIMESTAMP DEFAULT NOW()
+  last_seen TIMESTAMP DEFAULT NOW(),
 
-  );
+  created_at TIMESTAMP DEFAULT NOW()
 
-  `);
+);
 
-  console.log(
-    "✅ developers table ready"
-  );
+`);
 
-  // =====================================
+console.log("✅ developers table ready");
+
+// =====================================
+// VERIFY identity_id COLUMN
+// =====================================
+
+await pool.query(`
+
+ALTER TABLE developers
+ADD COLUMN IF NOT EXISTS identity_id UUID;
+
+`);
+
+console.log("✅ developers identity_id column verified");
+
+// =====================================
+// INDEX
+// =====================================
+
+await pool.query(`
+
+CREATE UNIQUE INDEX IF NOT EXISTS
+developers_identity_idx
+ON developers(identity_id);
+
+`);
+
+console.log("✅ developers identity index ready");
+  
+// =====================================
 // DEVELOPER IDENTITY
 // =====================================
 
@@ -616,33 +643,34 @@ async function updateDeveloperStats(trade) {
 
   try {
 
-const wallet =
-  trade.developerWallet;
-
-if (!wallet) {
-
-  console.log(
-    "⚠️ No developer wallet found."
-  );
-
-  return;
-
-}
-
-const gain =
-  Number(trade.highestPnL || 0);
-
-const marketCap =
-  Number(trade.highestMarketCap || 0);
-
+    const identityId = trade.identityId;
     
+   const wallet =
+  trade.developerWallet || null;
+
+    if (!identityId) {
+
+      console.log(
+        "⚠️ No developer identity found."
+      );
+
+      return;
+
+    }
+
+    const gain =
+      Number(trade.highestPnL || 0);
+
+    const marketCap =
+      Number(trade.highestMarketCap || 0);
+
     const existing =
       await pool.query(
 
         `SELECT * FROM developers
-         WHERE developer_wallet = $1`,
+         WHERE identity_id = $1`,
 
-        [wallet]
+        [identityId]
 
       );
 
@@ -650,15 +678,15 @@ const marketCap =
     // FIRST TIME DEVELOPER
     // ---------------------------------
 
-    if (
-      existing.rows.length === 0
-    ) {
+    if (existing.rows.length === 0) {
 
       await pool.query(
 
         `
 
         INSERT INTO developers (
+
+          identity_id,
 
           developer_wallet,
 
@@ -688,9 +716,9 @@ const marketCap =
 
           $1,
 
-          1,
-
           $2,
+
+          1,
 
           $3,
 
@@ -706,6 +734,8 @@ const marketCap =
 
           $9,
 
+          $10,
+
           50
 
         )
@@ -713,6 +743,8 @@ const marketCap =
         `,
 
         [
+
+          identityId,
 
           wallet,
 
@@ -737,173 +769,197 @@ const marketCap =
       );
 
       console.log(
-  `👤 New Developer Stored: ${wallet}`
-    );
+        `👤 New Developer Identity Stored: ${identityId}`
+      );
 
       return;
 
     }
 
- // ---------------------------------
-// EXISTING DEVELOPER
-// ---------------------------------
+    // ---------------------------------
+    // EXISTING DEVELOPER
+    // ---------------------------------
 
-const dev = existing.rows[0];
+    const dev = existing.rows[0];
 
-const totalLaunches =
-  dev.total_launches + 1;
+    const totalLaunches =
+      dev.total_launches + 1;
 
-const winners3x =
-  dev.winners_3x +
-  (gain >= 200 ? 1 : 0);
+    const winners3x =
+      dev.winners_3x +
+      (gain >= 200 ? 1 : 0);
 
-const winners5x =
-  dev.winners_5x +
-  (gain >= 400 ? 1 : 0);
+    const winners5x =
+      dev.winners_5x +
+      (gain >= 400 ? 1 : 0);
 
-const winners10x =
-  dev.winners_10x +
-  (gain >= 900 ? 1 : 0);
+    const winners10x =
+      dev.winners_10x +
+      (gain >= 900 ? 1 : 0);
 
-const rugs =
-  dev.rugs +
-  (gain < 50 ? 1 : 0);
+    const rugs =
+      dev.rugs +
+      (gain < 50 ? 1 : 0);
 
-const averageGain =
+    const averageGain =
 
-  (
+      (
 
-    dev.average_gain *
+        dev.average_gain *
 
-    dev.total_launches +
+        dev.total_launches +
 
-    gain
+        gain
 
-  ) /
+      ) /
 
-  totalLaunches;
+      totalLaunches;
 
-const averageMarketCap =
+    const averageMarketCap =
 
-  (
+      (
 
-    dev.average_market_cap *
+        dev.average_market_cap *
 
-    dev.total_launches +
+        dev.total_launches +
 
-    marketCap
+        marketCap
 
-  ) /
+      ) /
 
-  totalLaunches;
+      totalLaunches;
 
-const bestGain =
-  Math.max(
-    dev.best_gain,
-    gain
-  );
+    const bestGain =
+      Math.max(
+        dev.best_gain,
+        gain
+      );
 
-const bestMarketCap =
-  Math.max(
-    dev.best_market_cap,
-    marketCap
-  );
+    const bestMarketCap =
+      Math.max(
+        dev.best_market_cap,
+        marketCap
+      );
 
-// ---------------------------------
-// TRUST SCORE
-// ---------------------------------
+    // ---------------------------------
+    // TRUST SCORE
+    // ---------------------------------
 
-const trustScore =
+    const trustScore =
 
-  Math.max(
+      Math.max(
 
-    0,
+        0,
 
-    Math.min(
+        Math.min(
 
-      100,
+          100,
 
-      Math.round(
+          Math.round(
 
-        winners3x * 5 +
+            winners3x * 5 +
 
-        winners5x * 10 +
+            winners5x * 10 +
 
-        winners10x * 20 -
+            winners10x * 20 -
 
-        rugs * 5
+            rugs * 5
 
-      )
+          )
 
-    )
+        )
 
-  );
+      );
 
-await pool.query(
+    await pool.query(
 
-  `
+      `
 
-  UPDATE developers
+      UPDATE developers
 
-  SET
+      SET
 
-    total_launches = $1,
+        developer_wallet = $1,
 
-    winners_3x = $2,
+        total_launches = $2,
 
-    winners_5x = $3,
+        winners_3x = $3,
 
-    winners_10x = $4,
+        winners_5x = $4,
 
-    rugs = $5,
+        winners_10x = $5,
 
-    average_gain = $6,
+        rugs = $6,
 
-    average_market_cap = $7,
+        average_gain = $7,
 
-    best_gain = $8,
+        average_market_cap = $8,
 
-   best_market_cap = $9,
+        best_gain = $9,
 
-   trust_score = $10,
+        best_market_cap = $10,
 
-   last_seen = NOW()
+        trust_score = $11,
 
-  WHERE developer_wallet = $11
+        last_seen = NOW()
 
-  `,
+      WHERE identity_id = $12
 
-[
-  totalLaunches,
-  winners3x,
-  winners5x,
-  winners10x,
-  rugs,
-  averageGain,
-  averageMarketCap,
-  bestGain,
-  bestMarketCap,
-  trustScore,
-  wallet
-]
-  
-);
+      `,
 
-console.log(
-  `🔄 Updated Developer: ${wallet}`
-);
+      [
 
-console.log({
-  launches: totalLaunches,
-  trustScore,
-  winners3x,
-  winners5x,
-  winners10x,
-  rugs,
-  averageGain,
-  bestGain
-});
-    
+        wallet,
+
+        totalLaunches,
+
+        winners3x,
+
+        winners5x,
+
+        winners10x,
+
+        rugs,
+
+        averageGain,
+
+        averageMarketCap,
+
+        bestGain,
+
+        bestMarketCap,
+
+        trustScore,
+
+        identityId
+
+      ]
+
+    );
+
+    console.log(
+      `🔄 Updated Developer Identity: ${identityId}`
+    );
+
+    console.log({
+
+      launches: totalLaunches,
+
+      trustScore,
+
+      winners3x,
+
+      winners5x,
+
+      winners10x,
+
+      rugs,
+
+      averageGain,
+
+      bestGain
+
+    });
 
   } catch (error) {
 
@@ -959,28 +1015,24 @@ async function getTopDevelopers(limit = 10) {
 }
 
 // =====================================
-// GET DEVELOPER
+// GET DEVELOPER BY IDENTITY
 // =====================================
 
-async function getDeveloper(wallet) {
+async function getDeveloper(identityId) {
 
   const result = await pool.query(
 
     `
-
     SELECT *
-
     FROM developers
-
-    WHERE developer_wallet = $1
-
+    WHERE identity_id = $1
     `,
 
-    [wallet]
+    [identityId]
 
   );
 
-  return result.rows[0];
+  return result.rows[0] || null;
 
 }
 
@@ -988,25 +1040,19 @@ async function getDeveloper(wallet) {
 // GET DEVELOPER LAUNCHES
 // =====================================
 
-async function getDeveloperLaunches(wallet, limit = 5) {
+async function getDeveloperLaunches(identityId, limit = 5) {
 
   const result = await pool.query(
 
     `
-
     SELECT *
-
     FROM developer_launches
-
-    WHERE developer_wallet = $1
-
+    WHERE identity_id = $1
     ORDER BY created_at DESC
-
     LIMIT $2
-
     `,
 
-    [wallet, limit]
+    [identityId, limit]
 
   );
 
@@ -1136,8 +1182,8 @@ async function saveCachedFundingWallet(
   );
 
    console.log(
-    `Saved Creator Cache: ${mint} -> ${creator}`
-  );
+  `Saved Funding Wallet Cache: ${mint} -> ${feePayer}`
+);
 
 }
 
@@ -1145,9 +1191,9 @@ async function saveCachedFundingWallet(
 // GET DEVELOPER PERFORMANCE
 // =====================================
 
-async function getDeveloperPerformance(developerWallet) {
+async function getDeveloperPerformance(identityId) {
 
-  if (!developerWallet)
+  if (!identityId)
     return null;
 
   const result =
@@ -1172,10 +1218,10 @@ async function getDeveloperPerformance(developerWallet) {
 
       FROM completed_trades
 
-      WHERE developer_wallet = $1
+      WHERE identity_id = $1
       `,
 
-      [developerWallet]
+      [identityId]
 
     );
 
