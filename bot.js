@@ -1634,104 +1634,110 @@ async function processToken(
     let tokenData =
       trackedTokens.get(contract) || {};
 
-    // =====================================
-    // FUNDING WALLET
-    // =====================================
+// =====================================
+// FUNDING WALLET
+// =====================================
 
-    let fundingWallet =
-      tokenData.feePayer || null;
+let fundingWallet =
+  tokenData.feePayer || null;
 
-    if (!fundingWallet && migrationSignature) {
+if (!fundingWallet && migrationSignature) {
 
-      fundingWallet =
-        await getFundingWallet(
-          contract,
-          migrationSignature
-        );
+  fundingWallet =
+    await getFundingWallet(
+      contract,
+      migrationSignature
+    );
 
-      tokenData = {
-        ...tokenData,
-        feePayer: fundingWallet
-      };
+  tokenData = {
+    ...tokenData,
+    feePayer: fundingWallet
+  };
 
-      trackedTokens.set(
-        contract,
-        tokenData
+  trackedTokens.set(
+    contract,
+    tokenData
+  );
+
+}
+
+// =====================================
+// FEE PAYER
+// =====================================
+
+const feePayer = fundingWallet;
+
+// =====================================
+// WAIT FOR DEXSCREENER PAIR
+// =====================================
+
+for (
+  let attempt = 1;
+  attempt <= 6;
+  attempt++
+) {
+
+  try {
+
+    const pairResponse =
+      await axios.get(
+        `https://api.dexscreener.com/latest/dex/search?q=${contract}`
       );
 
-    }
+    const pairs =
+      pairResponse.data?.pairs || [];
 
-    // =====================================
-    // WAIT FOR DEXSCREENER PAIR
-    // =====================================
+    pair =
+      pairs.find(
+        (p) =>
 
-    for (
-      let attempt = 1;
-      attempt <= 6;
-      attempt++
-    ) {
+          p.chainId ===
+            "solana" &&
 
-      try {
-
-        const pairResponse =
-          await axios.get(
-            `https://api.dexscreener.com/latest/dex/search?q=${contract}`
-          );
-
-        const pairs =
-          pairResponse.data?.pairs || [];
-
-        pair =
-          pairs.find(
-            (p) =>
-
-              p.chainId ===
-                "solana" &&
-
-              p.liquidity?.usd > 0
-          );
-
-        if (pair) {
-
-          console.log(
-            `${contract}: Pair Found`
-          );
-
-          break;
-
-        }
-
-        console.log(
-          `${contract}: Pair not ready (${attempt}/6)`
-        );
-
-      } catch (error) {
-
-        console.log(
-          `${contract}: DexScreener request failed (${attempt}/6)`
-        );
-
-      }
-
-      await new Promise(
-        resolve =>
-          setTimeout(
-            resolve,
-            5000
-          )
+          p.liquidity?.usd > 0
       );
 
-    }
-
-    if (!pair) {
+    if (pair) {
 
       console.log(
-        `${contract}: Pair not found after 30 seconds`
+        `${contract}: Pair Found`
       );
 
-      return;
+      break;
 
     }
+
+    console.log(
+      `${contract}: Pair not ready (${attempt}/6)`
+    );
+
+  } catch (error) {
+
+    console.log(
+      `${contract}: DexScreener request failed (${attempt}/6)`
+    );
+
+  }
+
+  await new Promise(
+    resolve =>
+      setTimeout(
+        resolve,
+        5000
+      )
+  );
+
+}
+
+if (!pair) {
+
+  console.log(
+    `${contract}: Pair not found after 30 seconds`
+  );
+
+  return;
+
+}
 
 // =====================================
 // FIND ORIGINAL TOKEN CREATOR
@@ -1789,82 +1795,123 @@ if (
 // DEVELOPER IDENTITY ENGINE
 // =====================================
 
-let identityId = null;
+let identityId =
+  tokenData.identityId || null;
 
-try {
+if (
 
-  identityId =
-    await findDeveloperIdentity(
+  originalCreator ||
+
+  fundingWallet ||
+
+  feePayer
+
+) {
+
+  try {
+
+    // =====================================
+    // FIND EXISTING IDENTITY
+    // =====================================
+
+    identityId =
+      await findDeveloperIdentity(
+
+        originalCreator,
+
+        fundingWallet,
+
+        feePayer
+
+      );
+
+    // =====================================
+    // CREATE NEW IDENTITY
+    // =====================================
+
+    if (!identityId) {
+
+      identityId =
+        await createDeveloperIdentity();
+
+      console.log(
+        `🆕 New Identity Created: ${identityId}`
+      );
+
+    } else {
+
+      console.log(
+        `✅ Existing Identity Found: ${identityId}`
+      );
+
+    }
+
+    // =====================================
+    // LINK WALLETS
+    // =====================================
+
+    await linkWalletToIdentity(
+
+      identityId,
 
       originalCreator,
 
       fundingWallet,
 
-      fundingWallet
+      feePayer
 
     );
 
-  if (!identityId) {
+    // =====================================
+    // SAVE IDENTITY INTO MEMORY
+    // =====================================
 
-    identityId =
-      await createDeveloperIdentity();
+    tokenData = {
+
+      ...tokenData,
+
+      identityId
+
+    };
+
+    trackedTokens.set(
+
+      contract,
+
+      tokenData
+
+    );
+
+  } catch (error) {
 
     console.log(
-      `New Identity Created: ${identityId}`
+
+      "Identity Engine Error:",
+
+      error.message
+
     );
 
   }
-
-  await linkWalletToIdentity(
-
-    identityId,
-
-    originalCreator,
-
-    fundingWallet,
-
-    fundingWallet
-
-  );
-
-  tokenData = {
-
-    ...tokenData,
-
-    identityId
-
-  };
-
-  trackedTokens.set(
-    contract,
-    tokenData
-  );
-
-} catch (error) {
-
-  console.log(
-    "Identity Engine Error:",
-    error.message
-  );
 
 }
 
 // =====================================
 // DEVELOPER PERFORMANCE
-// ===================================== 
+// =====================================
 
-if (originalCreator) {
+if (identityId) {
 
   try {
 
     console.log(
-      "Looking up developer:",
-      originalCreator
+      "Looking up Identity:",
+      identityId
     );
 
-   developerStats =
-  await getDeveloper(originalCreator);
-    
+    developerStats =
+      await getDeveloper(identityId);
+
     console.log(
       "Developer Found:",
       developerStats
@@ -1872,39 +1919,44 @@ if (originalCreator) {
 
     if (developerStats) {
 
-    const launches =
-      Number(developerStats.total_launches || 0);
+      const launches =
+        Number(developerStats.total_launches || 0);
 
-    const winners =
-      Number(developerStats.winners_3x || 0);
+      const winners =
+        Number(developerStats.winners_3x || 0);
 
-    const failed =
-      Math.max(launches - winners, 0);
+      const failed =
+        Math.max(launches - winners, 0);
 
-    const winRate =
-      launches
-        ? ((winners / launches) * 100).toFixed(1)
-        : "0.0";
+      const winRate =
+        launches
+          ? ((winners / launches) * 100).toFixed(1)
+          : "0.0";
 
-    let rating = "⭐ High Risk";
+      let rating = "⭐ High Risk";
 
-    if (Number(winRate) >= 80)
-      rating = "⭐⭐⭐⭐⭐ Elite";
-    else if (Number(winRate) >= 60)
-      rating = "⭐⭐⭐⭐ Strong";
-    else if (Number(winRate) >= 40)
-      rating = "⭐⭐⭐ Average";
-    else if (Number(winRate) >= 20)
-      rating = "⭐⭐ Weak";
+      if (Number(winRate) >= 80)
+        rating = "⭐⭐⭐⭐⭐ Elite";
+      else if (Number(winRate) >= 60)
+        rating = "⭐⭐⭐⭐ Strong";
+      else if (Number(winRate) >= 40)
+        rating = "⭐⭐⭐ Average";
+      else if (Number(winRate) >= 20)
+        rating = "⭐⭐ Weak";
 
-    developerReport = `
+      developerReport = `
 
 ━━━━━━━━━━━━━━
 
 👤 Developer
 
+Identity:
+${identityId.slice(0,8)}...
+
 Wallet:
-${originalCreator.slice(0,6)}...${originalCreator.slice(-6)}
+${originalCreator
+  ? `${originalCreator.slice(0,6)}...${originalCreator.slice(-6)}`
+  : "Unknown"}
 
 🔥 RETURNING DEVELOPER
 
@@ -1931,16 +1983,21 @@ ${rating}
 
 ━━━━━━━━━━━━━━`;
 
-} else {
+    } else {
 
-    developerReport = `
+      developerReport = `
 
 ━━━━━━━━━━━━━━
 
 👤 Developer
 
+Identity:
+${identityId.slice(0,8)}...
+
 Wallet:
-${originalCreator.slice(0,6)}...${originalCreator.slice(-6)}
+${originalCreator
+  ? `${originalCreator.slice(0,6)}...${originalCreator.slice(-6)}`
+  : "Unknown"}
 
 🟢 NEW DEVELOPER
 
@@ -1951,7 +2008,7 @@ No previous tracked launches.
 
 ━━━━━━━━━━━━━━`;
 
-}
+    }
 
   } catch (error) {
 
@@ -1963,34 +2020,34 @@ No previous tracked launches.
 
 }
 
-    // =====================================
-    // TOKEN AGE
-    // =====================================
+// =====================================
+// TOKEN AGE
+// =====================================
 
-    const ageMinutes =
-      (Date.now() - pair.pairCreatedAt) /
-      1000 /
-      60;
+const ageMinutes =
+  (Date.now() - pair.pairCreatedAt) /
+  1000 /
+  60;
 
-    if (
-      ageMinutes <
-      CONFIG.MIN_TOKEN_AGE_MINUTES
-    ) {
-      return;
-    }
+if (
+  ageMinutes <
+  CONFIG.MIN_TOKEN_AGE_MINUTES
+) {
+  return;
+}
 
-    if (
-      ageMinutes >
-      CONFIG.MAX_TOKEN_AGE_MINUTES
-    ) {
+if (
+  ageMinutes >
+  CONFIG.MAX_TOKEN_AGE_MINUTES
+) {
 
-      trackedTokens.delete(
-        contract
-      );
+  trackedTokens.delete(
+    contract
+  );
 
-      return;
+  return;
 
-    }
+}
 
 // =====================================
 // UPDATE MEMORY
@@ -2008,6 +2065,7 @@ tokenData = {
   feePayer:
     fundingWallet,
   originalCreator,
+  identityId,
   lastChecked:
     tokenData.lastChecked ??
     Date.now(),
@@ -2212,25 +2270,22 @@ if (!safety.safe) {
       `${contract}: Score=${score}, Signal=${result.signal}, Allowed=${result.allowed}`
     );
 
-    const tracked =
-      trackedTokens.get(contract);
+    tokenData.lastSignal =
+  result.signal;
 
-    if (tracked) {
-
-      tracked.lastSignal =
-        result.signal;
-    }
+trackedTokens.set(
+  contract,
+  tokenData
+);
 
     if (!result.allowed)
       return;
 
-    // =====================================
-    // AI
-    // =====================================
+// =====================================
+// AI
+// =====================================
 
-if (
-  score >= 50
-) {
+if (score >= 50) {
 
   console.log(
     `${contract}: Running AI Analysis`
@@ -2275,42 +2330,61 @@ if (
     });
 
 }
-    
+
 // =====================================
 // PAPER BUY
 // =====================================
 
-if (score >= 75) {
+if (
+  score >= 75 &&
+  identityId
+) {
 
   await paperBuy(
-  contract,
-  tokenName,
-  identityId, 
-  originalCreator || safety.developerWallet,
-  fundingWallet,
-  pair.priceUsd,
-  marketCap,
-  score,
-  result.signal
-);
+
+    contract,
+
+    tokenName,
+
+    identityId,
+
+    originalCreator ||
+    safety.developerWallet,
+
+    fundingWallet,
+
+    pair.priceUsd,
+
+    marketCap,
+
+    score,
+
+    result.signal
+
+  );
 
 }
 
-  } catch (error) {
-    console.log(
-      "Process Token Error:",
-      error.message
-    );
-    console.log(
-      "Failed URL:",
-      error.config?.url
-    );
-    console.log(
-      "Status:",
-      error.response?.status
-    );
-    return;
-  }
+} catch (error) {
+
+  console.log(
+    "Process Token Error:",
+    error.message
+  );
+
+  console.log(
+    "Failed URL:",
+    error.config?.url
+  );
+
+  console.log(
+    "Status:",
+    error.response?.status
+  );
+
+  return;
+
+}
 
 // =====================================
 // ALERT (OUTSIDE TRY-CATCH)
@@ -2318,7 +2392,8 @@ if (score >= 75) {
 
 if (result && result.allowed) {
 
-  const tracked = trackedTokens.get(contract);
+  const tracked =
+    trackedTokens.get(contract);
 
   if (!tracked.buyAlertSent) {
 
@@ -2375,14 +2450,14 @@ ${safety.freezeEnabled ? "ON" : "OFF"}
 
     tracked.buyAlertSent = true;
 
-    console.log(`${contract}: Buy alert sent.`);
-    
-}
-  
-}
-  
-}
+    console.log(
+      `${contract}: Buy alert sent.`
+    );
 
+  }
+
+}
+    
 // =====================================
 // PUMPFUN TRACKER
 // =====================================
