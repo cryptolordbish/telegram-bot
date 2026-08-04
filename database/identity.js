@@ -8,108 +8,122 @@ async function findDeveloperIdentity(
   feePayer
 ) {
 
-  // 1. Search by Funding Wallet
-  if (fundingWallet) {
+  try {
 
-    const funding = await pool.query(
+    // 1. Search by Funding Wallet
 
-      `
+    if (fundingWallet) {
 
-      SELECT identity_id
+      const funding = await pool.query(
 
-      FROM developer_wallets
+        `
 
-      WHERE funding_wallet = $1
+        SELECT DISTINCT identity_id
 
-      LIMIT 1
+        FROM developer_wallets
 
-      `,
+        WHERE funding_wallet = $1
 
-      [fundingWallet]
+        LIMIT 1
 
-    );
+        `,
 
-    if (funding.rows.length) {
+        [fundingWallet]
 
-      console.log(
-        "Identity Found (Funding Wallet)"
       );
 
-      return funding.rows[0].identity_id;
+      if (funding.rows.length) {
+
+        console.log(
+          "Identity Found (Funding Wallet)"
+        );
+
+        return funding.rows[0].identity_id;
+
+      }
 
     }
 
-  }
+    // 2. Search by Developer Wallet
 
-  // 2. Search by Developer Wallet
+    if (developerWallet) {
 
-  if (developerWallet) {
+      const developer = await pool.query(
 
-    const developer = await pool.query(
+        `
 
-      `
+        SELECT DISTINCT identity_id
 
-      SELECT identity_id
+        FROM developer_wallets
 
-      FROM developer_wallets
+        WHERE developer_wallet = $1
 
-      WHERE developer_wallet = $1
+        LIMIT 1
 
-      LIMIT 1
+        `,
 
-      `,
+        [developerWallet]
 
-      [developerWallet]
-
-    );
-
-    if (developer.rows.length) {
-
-      console.log(
-        "Identity Found (Developer Wallet)"
       );
 
-      return developer.rows[0].identity_id;
+      if (developer.rows.length) {
+
+        console.log(
+          "Identity Found (Developer Wallet)"
+        );
+
+        return developer.rows[0].identity_id;
+
+      }
 
     }
 
-  }
+    // 3. Search by Fee Payer
 
-  // 3. Search by Fee Payer
+    if (feePayer) {
 
-  if (feePayer) {
+      const payer = await pool.query(
 
-    const payer = await pool.query(
+        `
 
-      `
+        SELECT DISTINCT identity_id
 
-      SELECT identity_id
+        FROM developer_wallets
 
-      FROM developer_wallets
+        WHERE fee_payer = $1
 
-      WHERE fee_payer = $1
+        LIMIT 1
 
-      LIMIT 1
+        `,
 
-      `,
+        [feePayer]
 
-      [feePayer]
-
-    );
-
-    if (payer.rows.length) {
-
-      console.log(
-        "Identity Found (Fee Payer)"
       );
 
-      return payer.rows[0].identity_id;
+      if (payer.rows.length) {
+
+        console.log(
+          "Identity Found (Fee Payer)"
+        );
+
+        return payer.rows[0].identity_id;
+
+      }
 
     }
 
-  }
+    return null;
 
-  return null;
+  } catch (error) {
+
+    console.log(
+      "Find Identity Error:",
+      error.message
+    );
+
+    return null;
+
+  }
 
 }
 
