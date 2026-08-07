@@ -1278,174 +1278,172 @@ async function findOriginalCreator(mint) {
 
   if (!mint) return null;
 
-// =====================================
-// CHECK DATABASE CACHE FIRST
-// =====================================
-
-const cachedCreator =
-  await getCachedCreator(mint);
-
-if (cachedCreator) {
-
-  console.log(
-    `Creator Cache Hit: ${cachedCreator}`
-  );
-
-  return cachedCreator;
-
-}
-
-try {
-
-  console.log(
-    `Searching creator for ${mint}`
-  );
-
-  let pages = 0;
-
-  const MAX_PAGES = 25;
-
-  let before = null;
-
-  let oldestTx = null;
-
   // =====================================
-  // TRANSACTION TYPES THAT INDICATE
-  // TOKEN CREATION
+  // CHECK DATABASE CACHE FIRST
   // =====================================
 
-  const CREATION_TYPES = [
+  const cachedCreator =
+    await getCachedCreator(mint);
 
-    "CREATE",
+  if (cachedCreator) {
 
-    "CREATE_POOL",
+    console.log(
+      `Creator Cache Hit: ${cachedCreator}`
+    );
 
-    "INITIALIZE_MINT",
+    return cachedCreator;
 
-    "INITIALIZE_ACCOUNT",
+  }
 
-    "MINT"
+  try {
 
-  ];
+    console.log(
+      `Searching creator for ${mint}`
+    );
 
-  while (pages < MAX_PAGES) {
+    let pages = 0;
 
-    const response =
-      await axios.get(
+    const MAX_PAGES = 25;
 
-        `${HELIUS_URL}/addresses/${mint}/transactions`,
+    let before = null;
 
-        {
-          params: {
-            "api-key": HELIUS_API_KEY,
-            limit:100,
-            before
+    let creationTx = null;
+
+    // =====================================
+    // TRANSACTION TYPES THAT INDICATE
+    // TOKEN CREATION
+    // =====================================
+
+    const CREATION_TYPES = [
+      "CREATE"
+    ];
+
+    while (pages < MAX_PAGES) {
+
+      const response =
+        await axios.get(
+          `${HELIUS_URL}/addresses/${mint}/transactions`,
+          {
+            params: {
+              "api-key": HELIUS_API_KEY,
+              limit: 100,
+              before
+            }
           }
-        }
+        );
 
-      );
+      const transactions =
+        response.data || [];
 
-    const transactions =
-      response.data || [];
-
-    pages++;
-
-    console.log(
-      `Scanning Page ${pages}`
-    );
-
-    if (!transactions.length)
-      break;
-
-    // =====================================
-    // SAVE THE OLDEST TX OF THIS PAGE
-    // =====================================
-
-    oldestTx =
-      transactions[
-        transactions.length - 1
-      ];
-
-    console.log(
-      `Fetched ${transactions.length} transactions`
-    );
-
-    // =====================================
-    // DEBUG
-    // =====================================
-
-    console.log(
-      `Oldest Type: ${oldestTx.type}`
-    );
-
-    console.log(
-      `Oldest Source: ${oldestTx.source}`
-    );
-
-    console.log(
-      `Oldest Fee Payer: ${oldestTx.feePayer}`
-    );
-
-    // =====================================
-    // STOP WHEN CREATION TX IS FOUND
-    // =====================================
-
-    if (
-
-      CREATION_TYPES.includes(
-        oldestTx.type
-      )
-
-    ) {
+      pages++;
 
       console.log(
-        `Creation transaction found (${oldestTx.type})`
+        `Scanning Page ${pages}`
       );
 
-      break;
+      if (!transactions.length) {
+        break;
+      }
+
+      const oldestTx =
+        transactions[
+          transactions.length - 1
+        ];
+
+      console.log(
+        `Fetched ${transactions.length} transactions`
+      );
+
+      console.log(
+        `Oldest Type: ${oldestTx.type}`
+      );
+
+      console.log(
+        `Oldest Source: ${oldestTx.source}`
+      );
+
+      console.log(
+        `Oldest Fee Payer: ${oldestTx.feePayer}`
+      );
+
+      // =====================================
+      // ONLY ACCEPT PUMPFUN CREATE
+      // =====================================
+
+      if (
+        CREATION_TYPES.includes(
+          oldestTx.type
+        ) &&
+        oldestTx.source === "PUMP_FUN"
+      ) {
+
+        creationTx =
+          oldestTx;
+
+        console.log(
+          `Pump.fun creation transaction found (${oldestTx.type})`
+        );
+
+        break;
+      }
+
+      // =====================================
+      // NEXT PAGE
+      // =====================================
+
+      before =
+        oldestTx.signature;
 
     }
 
     // =====================================
-    // NEXT PAGE
+    // NO VALID CREATION TX FOUND
     // =====================================
 
-    before =
-      oldestTx.signature;
+    if (!creationTx) {
 
-  }
+      console.log(
+        `⚠️ No Pump.fun CREATE transaction found for ${mint}`
+      );
 
-  const creator =
-    oldestTx?.feePayer || null;
+      return null;
+    }
 
-  if (creator) {
+    // =====================================
+    // ORIGINAL CREATOR
+    // =====================================
+
+    const creator =
+      creationTx.feePayer || null;
+
+    if (creator) {
+
+      console.log(
+        `Original Creator Found: ${creator}`
+      );
+
+      await saveCachedCreator(
+        mint,
+        creator
+      );
+
+    }
+
+    return creator;
+
+  } catch (error) {
 
     console.log(
-      `Original Creator Found: ${creator}`
+      "Find Creator Error:",
+      error.response?.data ||
+      error.message
     );
 
-    await saveCachedCreator(
-      mint,
-      creator
-    );
+    return null;
 
   }
 
-  return creator;
-
-} catch (error) {
-
-  console.log(
-    "Find Creator Error:",
-    error.response?.data ||
-    error.message
-  );
-
-  return null;
-
 }
-
-}  
 
 // =====================================
 // FIND DEVELOPER FUNDING WALLET
