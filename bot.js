@@ -2667,48 +2667,17 @@ if (
 ) {
 
   await paperBuy(
-
     contract,
-
     tokenName,
-
     identityId,
-
     originalCreator ||
-    safety.developerWallet,
-
+      safety.developerWallet,
     fundingWallet,
-
     pair.priceUsd,
-
     marketCap,
-
     score,
-
     result.signal
-
   );
-
-}
-
-} catch (error) {
-
-  console.log(
-    "Process Token Error:",
-    error.message
-  );
-
-  console.log(
-    "Failed URL:",
-    error.config?.url
-  );
-
-  console.log(
-    "Status:",
-    error.response?.status
-  );
-
-  return;
 
 }
 
@@ -2716,7 +2685,10 @@ if (
 // ALERT
 // =====================================
 
-if (result && result.allowed) {
+if (
+  result &&
+  result.allowed
+) {
 
   const tracked =
     trackedTokens.get(contract);
