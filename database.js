@@ -253,8 +253,6 @@ CREATE TABLE IF NOT EXISTS developer_wallets (
 
     funding_wallet TEXT,
 
-    fee_payer TEXT,
-
     first_seen TIMESTAMP DEFAULT NOW(),
 
     last_seen TIMESTAMP DEFAULT NOW()
@@ -263,32 +261,74 @@ CREATE TABLE IF NOT EXISTS developer_wallets (
 
 `);
 
-  await pool.query(`
+
+// =====================================
+// VERIFY REQUIRED COLUMNS
+// =====================================
+
+await pool.query(`
+
+ALTER TABLE developer_wallets
+ADD COLUMN IF NOT EXISTS developer_wallet TEXT;
+
+`);
+
+await pool.query(`
+
+ALTER TABLE developer_wallets
+ADD COLUMN IF NOT EXISTS funding_wallet TEXT;
+
+`);
+
+
+// =====================================
+// INDEXES
+// =====================================
+
+await pool.query(`
+
 CREATE INDEX IF NOT EXISTS idx_dev_wallet
 ON developer_wallets(developer_wallet);
+
 `);
 
 await pool.query(`
+
 CREATE INDEX IF NOT EXISTS idx_funding_wallet
 ON developer_wallets(funding_wallet);
+
 `);
 
 await pool.query(`
-CREATE INDEX IF NOT EXISTS idx_fee_payer
-ON developer_wallets(fee_payer);
-`);
 
-await pool.query(`
 CREATE INDEX IF NOT EXISTS idx_identity
 ON developer_wallets(identity_id);
+
 `);
 
-  console.log(
+console.log(
   "✅ developer_wallets table + indexes ready"
 );
 
+
 // =====================================
-// DEVELOPER WALLET UNIQUE CONSTRAINT
+// REMOVE OLD FEE PAYER CONSTRAINT
+// =====================================
+
+await pool.query(`
+
+ALTER TABLE developer_wallets
+DROP CONSTRAINT IF EXISTS developer_wallets_unique;
+
+`);
+
+console.log(
+  "✅ old developer_wallets constraint removed"
+);
+
+
+// =====================================
+// NEW WALLET PAIR UNIQUE CONSTRAINT
 // =====================================
 
 await pool.query(`
@@ -298,19 +338,14 @@ ALTER TABLE developer_wallets
 ADD CONSTRAINT developer_wallets_unique
 
 UNIQUE (
-
     developer_wallet,
-
-    funding_wallet,
-
-    fee_payer
-
+    funding_wallet
 );
 
 `).catch(() => {});
 
 console.log(
-  "✅ developer_wallets unique constraint ready"
+  "✅ developer_wallets wallet-pair constraint ready"
 );
 
 
