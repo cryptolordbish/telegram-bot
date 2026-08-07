@@ -22,7 +22,7 @@ const age =
   now -
   token.migratedAt;
 
-let interval;,
+let interval;
 
 // =====================================
 // 0 - 10 Minutes
@@ -1447,6 +1447,183 @@ try {
 }
 
 }  
+
+// =====================================
+// FIND DEVELOPER FUNDING WALLET
+// =====================================
+
+async function findDeveloperFundingWallet(
+  developerWallet
+) {
+
+  if (!developerWallet) {
+    return null;
+  }
+
+  try {
+
+    console.log(
+      `Searching funding wallet for developer ${developerWallet}`
+    );
+
+    // =====================================
+    // CHECK CACHE FIRST
+    // =====================================
+
+    const cached =
+      await getCachedFundingWallet(
+        developerWallet
+      );
+
+    if (cached) {
+
+      console.log(
+        `Funding Wallet Cache Hit: ${cached}`
+      );
+
+      return cached;
+
+    }
+
+    let before = null;
+
+    const MAX_PAGES = 5;
+
+    // =====================================
+    // SEARCH DEVELOPER TRANSACTIONS
+    // =====================================
+
+    for (
+      let page = 1;
+      page <= MAX_PAGES;
+      page++
+    ) {
+
+      const response =
+        await axios.get(
+
+          `${HELIUS_URL}/addresses/${developerWallet}/transactions`,
+
+          {
+            params: {
+              "api-key":
+                HELIUS_API_KEY,
+
+              limit:
+                100,
+
+              before
+            }
+          }
+
+        );
+
+      const transactions =
+        response.data || [];
+
+      if (!transactions.length) {
+        break;
+      }
+
+      console.log(
+        `Funding Scan Page ${page}: ${transactions.length} transactions`
+      );
+
+      // =====================================
+      // FIND INCOMING SOL TRANSFERS
+      // =====================================
+
+      for (
+        const tx of transactions
+      ) {
+
+        const nativeTransfers =
+          tx.nativeTransfers || [];
+
+        for (
+          const transfer of nativeTransfers
+        ) {
+
+          const sender =
+            transfer.fromUserAccount;
+
+          const receiver =
+            transfer.toUserAccount;
+
+          const lamports =
+            Number(
+              transfer.amount || 0
+            );
+
+          if (
+            receiver !== developerWallet
+          ) {
+            continue;
+          }
+
+          if (
+            !sender ||
+            sender === developerWallet
+          ) {
+            continue;
+          }
+
+          const solAmount =
+            lamports /
+            1_000_000_000;
+
+          // Ignore tiny dust transfers
+          if (
+            solAmount < 0.005
+          ) {
+            continue;
+          }
+
+          console.log(
+            `✅ Funding Wallet Candidate: ${sender} | ${solAmount.toFixed(4)} SOL`
+          );
+
+          await saveCachedFundingWallet(
+            developerWallet,
+            sender
+          );
+
+          return sender;
+
+        }
+
+      }
+
+      before =
+        transactions[
+          transactions.length - 1
+        ]?.signature;
+
+      if (!before) {
+        break;
+      }
+
+    }
+
+    console.log(
+      `⚠️ No funding wallet found for ${developerWallet}`
+    );
+
+    return null;
+
+  } catch (error) {
+
+    console.log(
+      "Funding Wallet Search Error:",
+      error.response?.data ||
+      error.message
+    );
+
+    return null;
+
+  }
+
+}
   
 // =====================================
 // SIGNAL ENGINE
@@ -1771,7 +1948,6 @@ async function processToken(
   migrationSignature = null
 ) {
 
-  // DECLARE VARIABLES OUTSIDE TRY BLOCK
   let pair = null;
   let marketCap = 0;
   let liquidity = 0;
@@ -1783,7 +1959,6 @@ async function processToken(
   let aiResult = "Skipped";
 
   let developerStats = null;
-
   let developerReport = "";
 
   try {
@@ -1799,288 +1974,235 @@ async function processToken(
     let tokenData =
       trackedTokens.get(contract) || {};
 
-// =====================================
-// FUNDING WALLET
-// =====================================
+    // =====================================
+    // WAIT FOR DEXSCREENER PAIR
+    // =====================================
 
-let fundingWallet =
-  tokenData.fundingWallet || null;
+    for (
+      let attempt = 1;
+      attempt <= 6;
+      attempt++
+    ) {
 
-if (
-  !fundingWallet &&
-  originalCreator
-) {
+      try {
 
-  fundingWallet =
-    await findDeveloperFundingWallet(
+        const pairResponse =
+          await axios.get(
+            `https://api.dexscreener.com/latest/dex/search?q=${contract}`
+          );
+
+        const pairs =
+          pairResponse.data?.pairs || [];
+
+        pair =
+          pairs.find(
+            (p) =>
+              p.chainId === "solana" &&
+              p.liquidity?.usd > 0
+          );
+
+        if (pair) {
+
+          console.log(
+            `${contract}: Pair Found`
+          );
+
+          break;
+
+        }
+
+        console.log(
+          `${contract}: Pair not ready (${attempt}/6)`
+        );
+
+      } catch (error) {
+
+        console.log(
+          `${contract}: DexScreener request failed (${attempt}/6)`
+        );
+
+      }
+
+      await new Promise(
+        resolve =>
+          setTimeout(
+            resolve,
+            5000
+          )
+      );
+
+    }
+
+    if (!pair) {
+
+      console.log(
+        `${contract}: Pair not found after 30 seconds`
+      );
+
+      return;
+
+    }
+
+    // =====================================
+    // FIND ORIGINAL TOKEN CREATOR
+    // =====================================
+
+    let originalCreator =
+      tokenData.originalCreator || null;
+
+    if (
+      ENABLE_CREATOR_LOOKUP &&
+      !originalCreator
+    ) {
+
+      try {
+
+        originalCreator =
+          await findOriginalCreator(
+            contract
+          );
+
+        if (originalCreator) {
+
+          console.log(
+            `Original Creator: ${originalCreator}`
+          );
+
+          tokenData = {
+            ...tokenData,
+            originalCreator
+          };
+
+          trackedTokens.set(
+            contract,
+            tokenData
+          );
+
+        }
+
+      } catch (error) {
+
+        console.log(
+          `Creator Lookup Failed: ${error.message}`
+        );
+
+      }
+
+    }
+
+    // =====================================
+    // FIND ACTUAL FUNDING WALLET
+    // =====================================
+
+    let fundingWallet =
+      tokenData.fundingWallet || null;
+
+    if (
+      !fundingWallet &&
       originalCreator
-    );
+    ) {
 
-  tokenData = {
-    ...tokenData,
-    fundingWallet
-  };
+      try {
 
-  trackedTokens.set(
-    contract,
-    tokenData
-  );
+        fundingWallet =
+          await findDeveloperFundingWallet(
+            originalCreator
+          );
 
-}
+        if (fundingWallet) {
 
-// =====================================
-// WAIT FOR DEXSCREENER PAIR
-// =====================================
+          console.log(
+            `Funding Wallet: ${fundingWallet}`
+          );
 
-for (
-  let attempt = 1;
-  attempt <= 6;
-  attempt++
-) {
+          tokenData = {
+            ...tokenData,
+            fundingWallet
+          };
 
-  try {
+          trackedTokens.set(
+            contract,
+            tokenData
+          );
 
-    const pairResponse =
-      await axios.get(
-        `https://api.dexscreener.com/latest/dex/search?q=${contract}`
-      );
+        }
 
-    const pairs =
-      pairResponse.data?.pairs || [];
+      } catch (error) {
 
-    pair =
-      pairs.find(
-        (p) =>
+        console.log(
+          "Funding Wallet Lookup Failed:",
+          error.message
+        );
 
-          p.chainId ===
-            "solana" &&
-
-          p.liquidity?.usd > 0
-      );
-
-    if (pair) {
-
-      console.log(
-        `${contract}: Pair Found`
-      );
-
-      break;
+      }
 
     }
 
-    console.log(
-      `${contract}: Pair not ready (${attempt}/6)`
-    );
-
-  } catch (error) {
-
-    console.log(
-      `${contract}: DexScreener request failed (${attempt}/6)`
-    );
-
-  }
-
-  await new Promise(
-    resolve =>
-      setTimeout(
-        resolve,
-        5000
-      )
-  );
-
-}
-
-if (!pair) {
-
-  console.log(
-    `${contract}: Pair not found after 30 seconds`
-  );
-
-  return;
-
-}
-
-// =====================================
-// FIND ORIGINAL TOKEN CREATOR
-// =====================================
-
-let originalCreator =
-  tokenData.originalCreator || null;
-
-if (
-  ENABLE_CREATOR_LOOKUP &&
-  !originalCreator
-) {
-
-  try {
-
-    originalCreator =
-      await findOriginalCreator(
-        contract
-      );
-
-    if (originalCreator) {
-
-      console.log(
-        `Original Creator: ${originalCreator}`
-      );
-
-      console.log(
-        "Original Creator Wallet:",
-        originalCreator
-      );
-
-      tokenData = {
-        ...tokenData,
-        originalCreator
-      };
-
-      trackedTokens.set(
-        contract,
-        tokenData
-      );
-
-    }
-
-  } catch (error) {
-
-    console.log(
-      `Creator Lookup Failed: ${error.message}`
-    );
-
-  }
-
-}
-
-// =====================================
-// FIND ACTUAL FUNDING WALLET
-// =====================================
-
-let fundingWallet =
-  tokenData.fundingWallet || null;
-
-if (
-  !fundingWallet &&
-  originalCreator
-) {
-
-  try {
-
-    fundingWallet =
-      await findDeveloperFundingWallet(
-        originalCreator
-      );
-
-    if (fundingWallet) {
-
-      console.log(
-        `Funding Wallet: ${fundingWallet}`
-      );
-
-      tokenData = {
-        ...tokenData,
-        fundingWallet
-      };
-
-      trackedTokens.set(
-        contract,
-        tokenData
-      );
-
-    }
-
-  } catch (error) {
-
-    console.log(
-      "Funding Wallet Lookup Failed:",
-      error.message
-    );
-
-  }
-
-}
-
-// =====================================
-// DEVELOPER IDENTITY ENGINE
-// =====================================
-
-let identityId =
-  tokenData.identityId || null;
-
-if (
-  originalCreator ||
-  fundingWallet
-) {
-
-  try {
-
     // =====================================
-    // FIND EXISTING IDENTITY
+    // DEVELOPER IDENTITY ENGINE
     // =====================================
 
-    identityId =
-      await findDeveloperIdentity(
-        originalCreator,
-        fundingWallet
-      );
+    let identityId =
+      tokenData.identityId || null;
 
-    // =====================================
-    // CREATE NEW IDENTITY
-    // =====================================
-
-    if (!identityId) {
-
-      identityId =
-        await createDeveloperIdentity();
-
-      console.log(
-        `🆕 New Identity Created: ${identityId}`
-      );
-
-    } else {
-
-      console.log(
-        `✅ Existing Identity Found: ${identityId}`
-      );
-
-    }
-
-    // =====================================
-    // LINK WALLETS
-    // =====================================
-
-    await linkWalletToIdentity(
-      identityId,
-      originalCreator,
+    if (
+      originalCreator ||
       fundingWallet
-    );
+    ) {
 
-    // =====================================
-    // SAVE IDENTITY INTO MEMORY
-    // =====================================
+      try {
 
-    tokenData = {
-      ...tokenData,
-      identityId,
-      originalCreator,
-      fundingWallet
-    };
+        identityId =
+          await findDeveloperIdentity(
+            originalCreator,
+            fundingWallet
+          );
 
-    trackedTokens.set(
-      contract,
-      tokenData
-    );
+        if (!identityId) {
 
-  } catch (error) {
+          identityId =
+            await createDeveloperIdentity();
 
-    console.log(
-      "Identity Engine Error:",
-      error.message
-    );
+          console.log(
+            `🆕 New Identity Created: ${identityId}`
+          );
 
-  }
+        } else {
 
-}
+          console.log(
+            `✅ Existing Identity Found: ${identityId}`
+          );
+
+        }
+
+        await linkWalletToIdentity(
+          identityId,
+          originalCreator,
+          fundingWallet
+        );
+
+        tokenData = {
+          ...tokenData,
+          identityId,
+          originalCreator,
+          fundingWallet
+        };
+
+        trackedTokens.set(
+          contract,
+          tokenData
+        );
+
+      } catch (error) {
+
+        console.log(
+          "Identity Engine Error:",
+          error.message
+        );
+
+      }
+
+    }
 
 // =====================================
 // DEVELOPER PERFORMANCE
@@ -2248,9 +2370,8 @@ tokenData = {
     pair.pairCreatedAt,
   migratedAt:
     tokenData.migratedAt,
-  feePayer:
-    fundingWallet,
   originalCreator,
+  fundingWallet,
   identityId,
   lastChecked:
     tokenData.lastChecked ??
@@ -2280,6 +2401,11 @@ liquidity =
 
 volume =
   pair.volume?.h24 || 0;
+
+volRatio =
+  liquidity > 0
+    ? volume / liquidity
+    : 0;
 
 console.log(
   `${tokenName} | MC=${marketCap} | LIQ=${liquidity}`
@@ -2581,7 +2707,10 @@ if (result && result.allowed) {
   const tracked =
     trackedTokens.get(contract);
 
-  if (!tracked.buyAlertSent) {
+  if (
+  tracked &&
+  !tracked.buyAlertSent
+) {
 
     await sendAlert(`
 
