@@ -1804,19 +1804,21 @@ async function processToken(
 // =====================================
 
 let fundingWallet =
-  tokenData.feePayer || null;
+  tokenData.fundingWallet || null;
 
-if (!fundingWallet && migrationSignature) {
+if (
+  !fundingWallet &&
+  originalCreator
+) {
 
   fundingWallet =
-    await getFundingWallet(
-      contract,
-      migrationSignature
+    await findDeveloperFundingWallet(
+      originalCreator
     );
 
   tokenData = {
     ...tokenData,
-    feePayer: fundingWallet
+    fundingWallet
   };
 
   trackedTokens.set(
@@ -1825,12 +1827,6 @@ if (!fundingWallet && migrationSignature) {
   );
 
 }
-
-// =====================================
-// FEE PAYER
-// =====================================
-
-const feePayer = fundingWallet;
 
 // =====================================
 // WAIT FOR DEXSCREENER PAIR
@@ -1957,6 +1953,54 @@ if (
 }
 
 // =====================================
+// FIND ACTUAL FUNDING WALLET
+// =====================================
+
+let fundingWallet =
+  tokenData.fundingWallet || null;
+
+if (
+  !fundingWallet &&
+  originalCreator
+) {
+
+  try {
+
+    fundingWallet =
+      await findDeveloperFundingWallet(
+        originalCreator
+      );
+
+    if (fundingWallet) {
+
+      console.log(
+        `Funding Wallet: ${fundingWallet}`
+      );
+
+      tokenData = {
+        ...tokenData,
+        fundingWallet
+      };
+
+      trackedTokens.set(
+        contract,
+        tokenData
+      );
+
+    }
+
+  } catch (error) {
+
+    console.log(
+      "Funding Wallet Lookup Failed:",
+      error.message
+    );
+
+  }
+
+}
+
+// =====================================
 // DEVELOPER IDENTITY ENGINE
 // =====================================
 
@@ -1964,13 +2008,8 @@ let identityId =
   tokenData.identityId || null;
 
 if (
-
   originalCreator ||
-
-  fundingWallet ||
-
-  feePayer
-
+  fundingWallet
 ) {
 
   try {
@@ -1981,13 +2020,8 @@ if (
 
     identityId =
       await findDeveloperIdentity(
-
         originalCreator,
-
-        fundingWallet,
-
-        feePayer
-
+        fundingWallet
       );
 
     // =====================================
@@ -2016,15 +2050,9 @@ if (
     // =====================================
 
     await linkWalletToIdentity(
-
       identityId,
-
       originalCreator,
-
-      fundingWallet,
-
-      feePayer
-
+      fundingWallet
     );
 
     // =====================================
@@ -2032,29 +2060,22 @@ if (
     // =====================================
 
     tokenData = {
-
       ...tokenData,
-
-      identityId
-
+      identityId,
+      originalCreator,
+      fundingWallet
     };
 
     trackedTokens.set(
-
       contract,
-
       tokenData
-
     );
 
   } catch (error) {
 
     console.log(
-
       "Identity Engine Error:",
-
       error.message
-
     );
 
   }
