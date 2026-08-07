@@ -1096,13 +1096,178 @@ function calculateScore(data) {
 }
 
 // =====================================
-// GET FUNDING WALLET
+// GET MIGRATION FEE PAYER
 // =====================================
 
 async function getFundingWallet(
   mint,
   signature
 ) {
+
+  if (!mint || !signature) {
+
+    console.log(
+      "⚠️ Missing mint or migration signature"
+    );
+
+    return null;
+  }
+
+  try {
+
+    // =====================================
+    // CHECK DATABASE CACHE FIRST
+    // =====================================
+
+    const cached =
+      await getCachedFundingWallet(
+        mint
+      );
+
+    if (cached) {
+
+      console.log(
+        `Funding Wallet Cache Hit: ${cached}`
+      );
+
+      return cached;
+    }
+
+    // =====================================
+    // LOOK UP MIGRATION TRANSACTION
+    // =====================================
+
+    console.log(
+      `Searching migration fee payer for ${mint}`
+    );
+
+    let transaction = null;
+
+    // Transaction may not be immediately
+    // available from RPC after migration.
+
+    for (
+      let attempt = 1;
+      attempt <= 3;
+      attempt++
+    ) {
+
+      try {
+
+        transaction =
+          await connection.getParsedTransaction(
+            signature,
+            {
+              commitment:
+                "confirmed",
+
+              maxSupportedTransactionVersion:
+                0
+            }
+          );
+
+        if (transaction) {
+          break;
+        }
+
+      } catch (error) {
+
+        console.log(
+          `Funding Wallet Lookup Attempt ${attempt} Failed:`,
+          error.message
+        );
+
+      }
+
+      if (attempt < 3) {
+
+        await new Promise(
+          resolve =>
+            setTimeout(
+              resolve,
+              3000
+            )
+        );
+
+      }
+
+    }
+
+    if (!transaction) {
+
+      console.log(
+        `⚠️ Migration transaction not found for ${mint}`
+      );
+
+      return null;
+    }
+
+    // =====================================
+    // GET FEE PAYER
+    // =====================================
+
+    const accountKeys =
+      transaction.transaction
+        ?.message
+        ?.accountKeys || [];
+
+    if (!accountKeys.length) {
+
+      console.log(
+        `⚠️ No account keys found for ${mint}`
+      );
+
+      return null;
+    }
+
+    const firstAccount =
+      accountKeys[0];
+
+    const feePayer =
+
+      firstAccount?.pubkey
+        ?.toBase58?.() ||
+
+      firstAccount?.pubkey
+        ?.toString?.() ||
+
+      firstAccount?.toString?.() ||
+
+      null;
+
+    if (!feePayer) {
+
+      console.log(
+        `⚠️ Fee payer not found for ${mint}`
+      );
+
+      return null;
+    }
+
+    console.log(
+      `✅ Migration Fee Payer Found: ${feePayer}`
+    );
+
+    // =====================================
+    // SAVE TO DATABASE CACHE
+    // =====================================
+
+    await saveCachedFundingWallet(
+      mint,
+      feePayer
+    );
+
+    return feePayer;
+
+  } catch (error) {
+
+    console.log(
+      "Funding Wallet Error:",
+      error.message
+    );
+
+    return null;
+  }
 
 }
 
