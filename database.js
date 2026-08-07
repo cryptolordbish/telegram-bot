@@ -245,22 +245,21 @@ await pool.query(`
 
 CREATE TABLE IF NOT EXISTS developer_wallets (
 
-    id SERIAL PRIMARY KEY,
+  id SERIAL PRIMARY KEY,
 
-    identity_id UUID REFERENCES developer_identity(identity_id),
+  identity_id UUID REFERENCES developer_identity(identity_id),
 
-    developer_wallet TEXT,
+  developer_wallet TEXT,
 
-    funding_wallet TEXT,
+  funding_wallet TEXT,
 
-    first_seen TIMESTAMP DEFAULT NOW(),
+  first_seen TIMESTAMP DEFAULT NOW(),
 
-    last_seen TIMESTAMP DEFAULT NOW()
+  last_seen TIMESTAMP DEFAULT NOW()
 
 );
 
 `);
-
 
 // =====================================
 // VERIFY REQUIRED COLUMNS
@@ -279,7 +278,6 @@ ALTER TABLE developer_wallets
 ADD COLUMN IF NOT EXISTS funding_wallet TEXT;
 
 `);
-
 
 // =====================================
 // INDEXES
@@ -310,7 +308,6 @@ console.log(
   "✅ developer_wallets table + indexes ready"
 );
 
-
 // =====================================
 // REMOVE OLD FEE PAYER CONSTRAINT
 // =====================================
@@ -326,7 +323,6 @@ console.log(
   "✅ old developer_wallets constraint removed"
 );
 
-
 // =====================================
 // NEW WALLET PAIR UNIQUE CONSTRAINT
 // =====================================
@@ -338,8 +334,8 @@ ALTER TABLE developer_wallets
 ADD CONSTRAINT developer_wallets_unique
 
 UNIQUE (
-    developer_wallet,
-    funding_wallet
+  developer_wallet,
+  funding_wallet
 );
 
 `).catch(() => {});
@@ -347,7 +343,6 @@ UNIQUE (
 console.log(
   "✅ developer_wallets wallet-pair constraint ready"
 );
-
 
 // =====================================
 // DEVELOPER LAUNCH HISTORY
