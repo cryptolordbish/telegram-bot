@@ -1,12 +1,4 @@
-const { Pool } = require("pg");
-
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl:
-    process.env.NODE_ENV === "production"
-      ? { rejectUnauthorized: false }
-      : false
-});
+const { pool } = require("../database");
 
 // =====================================
 // FIND DEVELOPER IDENTITY
@@ -14,33 +6,33 @@ const pool = new Pool({
 
 async function findDeveloperIdentity(
   developerWallet,
-  fundingWallet,
-  feePayer
+  fundingWallet
 ) {
 
   try {
 
-    // 1. Search by Funding Wallet
+    // =====================================
+    // 1. SEARCH BY FUNDING WALLET
+    // =====================================
 
     if (fundingWallet) {
 
-      const funding = await pool.query(
+      const funding =
+        await pool.query(
 
-        `
+          `
+          SELECT DISTINCT identity_id
 
-        SELECT DISTINCT identity_id
+          FROM developer_wallets
 
-        FROM developer_wallets
+          WHERE funding_wallet = $1
 
-        WHERE funding_wallet = $1
+          LIMIT 1
+          `,
 
-        LIMIT 1
+          [fundingWallet]
 
-        `,
-
-        [fundingWallet]
-
-      );
+        );
 
       if (funding.rows.length) {
 
@@ -54,27 +46,28 @@ async function findDeveloperIdentity(
 
     }
 
-    // 2. Search by Developer Wallet
+    // =====================================
+    // 2. SEARCH BY DEVELOPER WALLET
+    // =====================================
 
     if (developerWallet) {
 
-      const developer = await pool.query(
+      const developer =
+        await pool.query(
 
-        `
+          `
+          SELECT DISTINCT identity_id
 
-        SELECT DISTINCT identity_id
+          FROM developer_wallets
 
-        FROM developer_wallets
+          WHERE developer_wallet = $1
 
-        WHERE developer_wallet = $1
+          LIMIT 1
+          `,
 
-        LIMIT 1
+          [developerWallet]
 
-        `,
-
-        [developerWallet]
-
-      );
+        );
 
       if (developer.rows.length) {
 
@@ -83,40 +76,6 @@ async function findDeveloperIdentity(
         );
 
         return developer.rows[0].identity_id;
-
-      }
-
-    }
-
-    // 3. Search by Fee Payer
-
-    if (feePayer) {
-
-      const payer = await pool.query(
-
-        `
-
-        SELECT DISTINCT identity_id
-
-        FROM developer_wallets
-
-        WHERE fee_payer = $1
-
-        LIMIT 1
-
-        `,
-
-        [feePayer]
-
-      );
-
-      if (payer.rows.length) {
-
-        console.log(
-          "Identity Found (Fee Payer)"
-        );
-
-        return payer.rows[0].identity_id;
 
       }
 
@@ -145,19 +104,18 @@ async function createDeveloperIdentity() {
 
   try {
 
-    const result = await pool.query(
+    const result =
+      await pool.query(
 
-      `
+        `
+        INSERT INTO developer_identity
 
-      INSERT INTO developer_identity
+        DEFAULT VALUES
 
-      DEFAULT VALUES
+        RETURNING identity_id
+        `
 
-      RETURNING identity_id
-
-      `
-
-    );
+      );
 
     const identityId =
       result.rows[0].identity_id;
@@ -186,93 +144,64 @@ async function createDeveloperIdentity() {
 // =====================================
 
 async function linkWalletToIdentity(
-
   identityId,
-
   developerWallet,
-
-  fundingWallet,
-
-  feePayer
-
+  fundingWallet
 ) {
 
   try {
 
+    if (!identityId) {
+
+      console.log(
+        "⚠️ Cannot link wallets without identityId"
+      );
+
+      return;
+
+    }
+
     await pool.query(
 
       `
-
       INSERT INTO developer_wallets (
 
         identity_id,
 
         developer_wallet,
 
-        funding_wallet,
-
-        fee_payer
+        funding_wallet
 
       )
 
       VALUES (
 
         $1,
-
         $2,
-
-        $3,
-
-        $4
+        $3
 
       )
 
-      ON CONFLICT (
-
-        developer_wallet,
-
-        funding_wallet,
-
-        fee_payer
-
-      )
-
-      DO UPDATE
-
-      SET
-
-        last_seen = NOW()
-
+      ON CONFLICT DO NOTHING
       `,
 
       [
-
         identityId,
-
         developerWallet,
-
-        fundingWallet,
-
-        feePayer
-
+        fundingWallet
       ]
 
     );
 
     console.log(
-
       `Wallets linked to Identity ${identityId}`
-
     );
 
   } catch (error) {
 
     console.log(
-
       "Link Wallet Error:",
-
       error.message
-
     );
 
   }
