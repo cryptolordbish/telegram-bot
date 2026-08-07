@@ -22,7 +22,7 @@ const age =
   now -
   token.migratedAt;
 
-let interval;
+let interval;,
 
 // =====================================
 // 0 - 10 Minutes
