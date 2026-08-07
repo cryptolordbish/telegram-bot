@@ -95,7 +95,7 @@ else {
 
   if (trade) {
 
-    const completedTrade = {
+ const completedTrade = {
 
   contract,
 
@@ -107,9 +107,6 @@ else {
 
   fundingWallet:
     trade.fundingWallet,
-
-  feePayer:
-  trade.fundingWallet,
 
   tokenName:
     trade.tokenName,
@@ -315,6 +312,8 @@ const scanned = new Set();
 const trackedTokens = new Map();
 
 const aiAnalyzedTokens = new Set();
+
+const processingTokens = new Set();
 
 // =====================================
 // PAPER TRADING
@@ -1948,6 +1947,21 @@ async function processToken(
   migrationSignature = null
 ) {
 
+  // =====================================
+  // PREVENT DUPLICATE PROCESSING
+  // =====================================
+
+  if (processingTokens.has(contract)) {
+
+    console.log(
+      `${contract}: Already processing, skipping duplicate call`
+    );
+
+    return;
+  }
+
+  processingTokens.add(contract);
+
   let pair = null;
   let marketCap = 0;
   let liquidity = 0;
@@ -2699,7 +2713,7 @@ if (
 }
 
 // =====================================
-// ALERT (OUTSIDE TRY-CATCH)
+// ALERT
 // =====================================
 
 if (result && result.allowed) {
@@ -2708,9 +2722,9 @@ if (result && result.allowed) {
     trackedTokens.get(contract);
 
   if (
-  tracked &&
-  !tracked.buyAlertSent
-) {
+    tracked &&
+    !tracked.buyAlertSent
+  ) {
 
     await sendAlert(`
 
@@ -2771,9 +2785,36 @@ ${safety.freezeEnabled ? "ON" : "OFF"}
 
   }
 
-  }
+}
 
-  }
+} catch (error) {
+
+  console.log(
+    "Process Token Error:",
+    error.message
+  );
+
+  console.log(
+    "Failed URL:",
+    error.config?.url
+  );
+
+  console.log(
+    "Status:",
+    error.response?.status
+  );
+
+} finally {
+
+  processingTokens.delete(contract);
+
+  console.log(
+    `${contract}: Processing lock released`
+  );
+
+}
+
+}
     
 // =====================================
 // PUMPFUN TRACKER
