@@ -315,6 +315,8 @@ const aiAnalyzedTokens = new Set();
 
 const processingTokens = new Set();
 
+const failedCreatorLookups = new Map();
+
 // =====================================
 // PAPER TRADING
 // =====================================
@@ -1272,12 +1274,27 @@ async function getFundingWallet(
 
 // =====================================
 // FIND ORIGINAL CREATOR
-// LOW-CREDIT VERSION
+// SINGLE-REQUEST VERSION
 // =====================================
 
 async function findOriginalCreator(mint) {
 
   if (!mint) return null;
+
+ // =====================================
+// DO NOT RETRY FAILED CREATOR LOOKUPS
+// =====================================
+
+if (
+  failedCreatorLookups.has(mint)
+) {
+
+  console.log(
+    `Creator lookup already failed for ${mint} - skipping Helius`
+  );
+
+  return null;
+}
 
   // =====================================
   // CHECK DATABASE CACHE FIRST
@@ -1287,6 +1304,8 @@ async function findOriginalCreator(mint) {
     await getCachedCreator(mint);
 
   if (cachedCreator) {
+
+    failedCreatorLookups.delete(mint);
 
     console.log(
       `Creator Cache Hit: ${cachedCreator}`
@@ -1298,44 +1317,27 @@ async function findOriginalCreator(mint) {
   try {
 
     console.log(
-      `Searching creator for ${mint} (low-credit lookup)`
+      `Searching creator for ${mint} (single request)`
     );
 
     // =====================================
-    // HELIUS RPC
-    // OLDEST TRANSACTIONS FIRST
+    // GET OLDEST TRANSACTIONS FIRST
     // =====================================
 
     const response =
-      await axios.post(
-        `https://mainnet.helius-rpc.com/?api-key=${HELIUS_API_KEY}`,
+      await axios.get(
+        `${HELIUS_URL}/addresses/${mint}/transactions`,
         {
-          jsonrpc: "2.0",
-          id: 1,
-          method: "getTransactionsForAddress",
-          params: [
-            mint,
-            {
-              transactionDetails: "full",
-              sortOrder: "asc",
-              limit: 100
-            }
-          ]
+          params: {
+            "api-key": HELIUS_API_KEY,
+            limit: 100,
+            "sort-order": "asc"
+          }
         }
       );
 
-    if (response.data?.error) {
-
-      console.log(
-        "Creator RPC Error:",
-        response.data.error
-      );
-
-      return null;
-    }
-
     const transactions =
-      response.data?.result?.data || [];
+      response.data || [];
 
     console.log(
       `Creator lookup returned ${transactions.length} transactions`
@@ -1343,63 +1345,74 @@ async function findOriginalCreator(mint) {
 
     if (!transactions.length) {
 
+      failedCreatorLookups.set(
+        mint,
+        Date.now()
+      );
+
       console.log(
         `⚠️ No transactions found for ${mint}`
+      );
+
+      console.log(
+        `Creator lookup paused for 30 minutes`
       );
 
       return null;
     }
 
     // =====================================
-    // FIND PUMPFUN CREATE
+    // FIND REAL PUMPFUN CREATE
     // =====================================
 
-    let creationTx = null;
-
-    for (const tx of transactions) {
-
-      if (
-        tx.type === "CREATE" &&
-        tx.source === "PUMP_FUN"
-      ) {
-
-        creationTx = tx;
-
-        break;
-      }
-    }
-
-    // =====================================
-    // NO CREATE FOUND
-    // =====================================
+    const creationTx =
+      transactions.find(
+        tx =>
+          tx.type === "CREATE" &&
+          tx.source === "PUMP_FUN"
+      );
 
     if (!creationTx) {
+
+      failedCreatorLookups.set(
+        mint,
+        Date.now()
+      );
 
       console.log(
         `⚠️ No Pump.fun CREATE transaction found for ${mint}`
       );
 
+      console.log(
+        `Creator lookup paused for 30 minutes`
+      );
+
       return null;
     }
-
-    // =====================================
-    // CREATOR
-    // =====================================
 
     const creator =
       creationTx.feePayer || null;
 
     if (!creator) {
 
+      failedCreatorLookups.set(
+        mint,
+        Date.now()
+      );
+
       console.log(
-        `⚠️ CREATE found but creator unavailable for ${mint}`
+        `⚠️ Pump.fun CREATE found but no creator for ${mint}`
+      );
+
+      console.log(
+        `Creator lookup paused for 30 minutes`
       );
 
       return null;
     }
 
     console.log(
-      `Pump.fun creation transaction found (CREATE)`
+      "Pump.fun creation transaction found (CREATE)"
     );
 
     console.log(
@@ -1407,7 +1420,13 @@ async function findOriginalCreator(mint) {
     );
 
     // =====================================
-    // CACHE RESULT
+    // SUCCESS - CLEAR FAILED COOLDOWN
+    // =====================================
+
+    failedCreatorLookups.delete(mint);
+
+    // =====================================
+    // SAVE CREATOR CACHE
     // =====================================
 
     await saveCachedCreator(
@@ -1419,10 +1438,23 @@ async function findOriginalCreator(mint) {
 
   } catch (error) {
 
+    // =====================================
+    // PREVENT ERROR RETRY EVERY MINUTE
+    // =====================================
+
+    failedCreatorLookups.set(
+      mint,
+      Date.now()
+    );
+
     console.log(
       "Find Creator Error:",
       error.response?.data ||
       error.message
+    );
+
+    console.log(
+      `Creator lookup paused for 30 minutes`
     );
 
     return null;
