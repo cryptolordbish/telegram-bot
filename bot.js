@@ -1272,6 +1272,7 @@ async function getFundingWallet(
 
 // =====================================
 // FIND ORIGINAL CREATOR
+// LOW-CREDIT VERSION
 // =====================================
 
 async function findOriginalCreator(mint) {
@@ -1292,112 +1293,84 @@ async function findOriginalCreator(mint) {
     );
 
     return cachedCreator;
-
   }
 
   try {
 
     console.log(
-      `Searching creator for ${mint}`
+      `Searching creator for ${mint} (low-credit lookup)`
     );
 
-    let pages = 0;
-
-    const MAX_PAGES = 25;
-
-    let before = null;
-
-    let creationTx = null;
-
     // =====================================
-    // TRANSACTION TYPES THAT INDICATE
-    // TOKEN CREATION
+    // HELIUS RPC
+    // OLDEST TRANSACTIONS FIRST
     // =====================================
 
-    const CREATION_TYPES = [
-      "CREATE"
-    ];
-
-    while (pages < MAX_PAGES) {
-
-      const response =
-        await axios.get(
-          `${HELIUS_URL}/addresses/${mint}/transactions`,
-          {
-            params: {
-              "api-key": HELIUS_API_KEY,
-              limit: 100,
-              before
+    const response =
+      await axios.post(
+        `https://mainnet.helius-rpc.com/?api-key=${HELIUS_API_KEY}`,
+        {
+          jsonrpc: "2.0",
+          id: 1,
+          method: "getTransactionsForAddress",
+          params: [
+            mint,
+            {
+              transactionDetails: "full",
+              sortOrder: "asc",
+              limit: 100
             }
-          }
-        );
-
-      const transactions =
-        response.data || [];
-
-      pages++;
-
-      console.log(
-        `Scanning Page ${pages}`
+          ]
+        }
       );
 
-      if (!transactions.length) {
-        break;
-      }
-
-      const oldestTx =
-        transactions[
-          transactions.length - 1
-        ];
+    if (response.data?.error) {
 
       console.log(
-        `Fetched ${transactions.length} transactions`
+        "Creator RPC Error:",
+        response.data.error
       );
+
+      return null;
+    }
+
+    const transactions =
+      response.data?.result?.data || [];
+
+    console.log(
+      `Creator lookup returned ${transactions.length} transactions`
+    );
+
+    if (!transactions.length) {
 
       console.log(
-        `Oldest Type: ${oldestTx.type}`
+        `⚠️ No transactions found for ${mint}`
       );
 
-      console.log(
-        `Oldest Source: ${oldestTx.source}`
-      );
-
-      console.log(
-        `Oldest Fee Payer: ${oldestTx.feePayer}`
-      );
-
-      // =====================================
-      // ONLY ACCEPT PUMPFUN CREATE
-      // =====================================
-
-      if (
-        CREATION_TYPES.includes(
-          oldestTx.type
-        ) &&
-        oldestTx.source === "PUMP_FUN"
-      ) {
-
-        creationTx =
-          oldestTx;
-
-        console.log(
-          `Pump.fun creation transaction found (${oldestTx.type})`
-        );
-
-        break;
-      }
-
-      // =====================================
-      // NEXT PAGE
-      // =====================================
-
-      before =
-        oldestTx.signature;
-
+      return null;
     }
 
     // =====================================
-    // NO VALID CREATION TX FOUND
+    // FIND PUMPFUN CREATE
+    // =====================================
+
+    let creationTx = null;
+
+    for (const tx of transactions) {
+
+      if (
+        tx.type === "CREATE" &&
+        tx.source === "PUMP_FUN"
+      ) {
+
+        creationTx = tx;
+
+        break;
+      }
+    }
+
+    // =====================================
+    // NO CREATE FOUND
     // =====================================
 
     if (!creationTx) {
@@ -1410,24 +1383,37 @@ async function findOriginalCreator(mint) {
     }
 
     // =====================================
-    // ORIGINAL CREATOR
+    // CREATOR
     // =====================================
 
     const creator =
       creationTx.feePayer || null;
 
-    if (creator) {
+    if (!creator) {
 
       console.log(
-        `Original Creator Found: ${creator}`
+        `⚠️ CREATE found but creator unavailable for ${mint}`
       );
 
-      await saveCachedCreator(
-        mint,
-        creator
-      );
-
+      return null;
     }
+
+    console.log(
+      `Pump.fun creation transaction found (CREATE)`
+    );
+
+    console.log(
+      `Original Creator Found: ${creator}`
+    );
+
+    // =====================================
+    // CACHE RESULT
+    // =====================================
+
+    await saveCachedCreator(
+      mint,
+      creator
+    );
 
     return creator;
 
@@ -1440,9 +1426,7 @@ async function findOriginalCreator(mint) {
     );
 
     return null;
-
   }
-
 }
 
 // =====================================
