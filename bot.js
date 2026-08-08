@@ -317,6 +317,8 @@ const processingTokens = new Set();
 
 const failedCreatorLookups = new Map();
 
+const failedFundingLookups = new Set();
+
 // =====================================
 // PAPER TRADING
 // =====================================
@@ -1475,12 +1477,8 @@ async function findDeveloperFundingWallet(
 
   try {
 
-    console.log(
-      `Searching funding wallet for developer ${developerWallet}`
-    );
-
     // =====================================
-    // CHECK CACHE FIRST
+    // CHECK DATABASE CACHE FIRST
     // =====================================
 
     const cached =
@@ -1490,13 +1488,37 @@ async function findDeveloperFundingWallet(
 
     if (cached) {
 
+      failedFundingLookups.delete(
+        developerWallet
+      );
+
       console.log(
         `Funding Wallet Cache Hit: ${cached}`
       );
 
       return cached;
-
     }
+
+    // =====================================
+    // DO NOT RETRY FAILED LOOKUPS
+    // =====================================
+
+    if (
+      failedFundingLookups.has(
+        developerWallet
+      )
+    ) {
+
+      console.log(
+        `Funding lookup already failed for ${developerWallet} - skipping Helius`
+      );
+
+      return null;
+    }
+
+    console.log(
+      `Searching funding wallet for developer ${developerWallet}`
+    );
 
     let before = null;
 
@@ -1514,9 +1536,7 @@ async function findDeveloperFundingWallet(
 
       const response =
         await axios.get(
-
           `${HELIUS_URL}/addresses/${developerWallet}/transactions`,
-
           {
             params: {
               "api-key":
@@ -1528,7 +1548,6 @@ async function findDeveloperFundingWallet(
               before
             }
           }
-
         );
 
       const transactions =
@@ -1596,6 +1615,10 @@ async function findDeveloperFundingWallet(
             `✅ Funding Wallet Candidate: ${sender} | ${solAmount.toFixed(4)} SOL`
           );
 
+          failedFundingLookups.delete(
+            developerWallet
+          );
+
           await saveCachedFundingWallet(
             developerWallet,
             sender
@@ -1618,13 +1641,29 @@ async function findDeveloperFundingWallet(
 
     }
 
+    // =====================================
+    // NO FUNDING WALLET FOUND
+    // =====================================
+
+    failedFundingLookups.add(
+      developerWallet
+    );
+
     console.log(
       `⚠️ No funding wallet found for ${developerWallet}`
+    );
+
+    console.log(
+      `Funding lookup disabled for this developer`
     );
 
     return null;
 
   } catch (error) {
+
+    failedFundingLookups.add(
+      developerWallet
+    );
 
     console.log(
       "Funding Wallet Search Error:",
@@ -1632,11 +1671,16 @@ async function findDeveloperFundingWallet(
       error.message
     );
 
+    console.log(
+      `Funding lookup disabled for this developer`
+    );
+
     return null;
 
   }
 
 }
+
   
 // =====================================
 // SIGNAL ENGINE
