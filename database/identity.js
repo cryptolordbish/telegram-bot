@@ -1,9 +1,5 @@
 const { pool } = require("../database");
 
-// =====================================
-// FIND DEVELOPER IDENTITY
-// =====================================
-
 async function findDeveloperIdentity(
   developerWallet,
   fundingWallet
@@ -12,75 +8,81 @@ async function findDeveloperIdentity(
   try {
 
     // =====================================
-    // 1. SEARCH BY FUNDING WALLET
-    // =====================================
-
-    if (fundingWallet) {
-
-      const funding =
-        await pool.query(
-
-          `
-          SELECT DISTINCT identity_id
-
-          FROM developer_wallets
-
-          WHERE funding_wallet = $1
-
-          LIMIT 1
-          `,
-
-          [fundingWallet]
-
-        );
-
-      if (funding.rows.length) {
-
-        console.log(
-          "Identity Found (Funding Wallet)"
-        );
-
-        return funding.rows[0].identity_id;
-
-      }
-
-    }
-
-    // =====================================
-    // 2. SEARCH BY DEVELOPER WALLET
+    // 1. PRIMARY IDENTITY:
+    // EXACT DEVELOPER WALLET
     // =====================================
 
     if (developerWallet) {
 
       const developer =
         await pool.query(
-
           `
           SELECT DISTINCT identity_id
-
           FROM developer_wallets
-
           WHERE developer_wallet = $1
-
           LIMIT 1
           `,
-
           [developerWallet]
-
         );
 
       if (developer.rows.length) {
 
         console.log(
-          "Identity Found (Developer Wallet)"
+          "✅ Identity Found (Developer Wallet)"
         );
 
         return developer.rows[0].identity_id;
+      }
+
+    }
+
+    // =====================================
+    // 2. FUNDING WALLET:
+    // SUPPORTING EVIDENCE ONLY
+    // =====================================
+
+    if (fundingWallet) {
+
+      const funding =
+        await pool.query(
+          `
+          SELECT DISTINCT
+            identity_id,
+            developer_wallet
+          FROM developer_wallets
+          WHERE funding_wallet = $1
+          LIMIT 1
+          `,
+          [fundingWallet]
+        );
+
+      if (funding.rows.length) {
+
+        console.log(
+          "🟡 Funding Wallet Previously Seen"
+        );
+
+        console.log(
+          `Supporting Identity: ${funding.rows[0].identity_id}`
+        );
+
+        console.log(
+          `Previously Linked Developer: ${funding.rows[0].developer_wallet}`
+        );
+
+        // IMPORTANT:
+        // Funding wallet alone does NOT prove
+        // this is the same developer.
+        //
+        // Therefore we DO NOT return
+        // funding.rows[0].identity_id here.
 
       }
 
     }
 
+    // No exact developer-wallet match.
+    // processToken() will create a new identity.
     return null;
 
   } catch (error) {
@@ -91,7 +93,6 @@ async function findDeveloperIdentity(
     );
 
     return null;
-
   }
 
 }
