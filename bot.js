@@ -290,6 +290,12 @@ const HELIUS_URL =
 const ENABLE_CREATOR_LOOKUP = true;
 
 // =====================================
+// HELIUS MASTER SWITCH
+// =====================================
+
+const HELIUS_ENABLED = false;
+
+// =====================================
 // MEMORY
 // =====================================
 
@@ -325,7 +331,7 @@ const PAPER_BUY_AMOUNT = 10;
 const CONFIG = {
 
   MIN_MARKET_CAP: 10000,
-  MAX_MARKET_CAP: 500000,
+  MAX_MARKET_CAP: 1000000,
 
   MIN_LIQUIDITY: 4000,
 
@@ -1093,6 +1099,19 @@ async function getFundingWallet(
   signature
 ) {
 
+  // =====================================
+  // STOP HELIUS RPC REQUESTS
+  // =====================================
+
+  if (!HELIUS_ENABLED) {
+
+    console.log(
+      "⏸️ Helius disabled - skipping migration transaction lookup"
+    );
+
+    return null;
+  }
+
   if (!mint || !signature) {
 
     console.log(
@@ -1269,20 +1288,20 @@ async function findOriginalCreator(mint) {
 
   if (!mint) return null;
 
- // =====================================
-// DO NOT RETRY FAILED CREATOR LOOKUPS
-// =====================================
+  // =====================================
+  // DO NOT RETRY FAILED CREATOR LOOKUPS
+  // =====================================
 
-if (
-  failedCreatorLookups.has(mint)
-) {
+  if (
+    failedCreatorLookups.has(mint)
+  ) {
 
-  console.log(
-    `Creator lookup already failed for ${mint} - skipping Helius`
-  );
+    console.log(
+      `Creator lookup already failed for ${mint} - skipping Helius`
+    );
 
-  return null;
-}
+    return null;
+  }
 
   // =====================================
   // CHECK DATABASE CACHE FIRST
@@ -1300,6 +1319,19 @@ if (
     );
 
     return cachedCreator;
+  }
+
+  // =====================================
+  // STOP NEW HELIUS REQUESTS
+  // =====================================
+
+  if (!HELIUS_ENABLED) {
+
+    console.log(
+      `⏸️ Helius disabled - no cached creator for ${mint}`
+    );
+
+    return null;
   }
 
   try {
@@ -1333,21 +1365,15 @@ if (
 
     if (!transactions.length) {
 
-      failedCreatorLookups.set(
-        mint,
-        Date.now()
-      );
+      failedCreatorLookups.add(mint);
 
       console.log(
         `⚠️ No transactions found for ${mint}`
       );
 
-      console.log(
-        `Creator lookup paused for 30 minutes`
-      );
-
       return null;
     }
+
 
     // =====================================
     // FIND REAL PUMPFUN CREATE
@@ -1497,6 +1523,19 @@ async function findDeveloperFundingWallet(
 
       console.log(
         `Funding lookup already failed for ${developerWallet} - skipping Helius`
+      );
+
+      return null;
+    }
+
+    // =====================================
+    // STOP NEW HELIUS REQUESTS
+    // =====================================
+
+    if (!HELIUS_ENABLED) {
+
+      console.log(
+        `⏸️ Helius disabled - no cached funding wallet for ${developerWallet}`
       );
 
       return null;
